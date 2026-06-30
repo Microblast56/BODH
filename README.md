@@ -27,12 +27,18 @@ BODH/
 │
 ├── backend/
 ├── frontend/
-├── docs/
+├── database/
 ├── data/
+│   ├── raw/
+│   └── processed/
 ├── notebooks/
-├── models/
 ├── tests/
+├── scripts/
+├── assets/
+├── docs/
 ├── README.md
+├── requirements.txt
+├── .gitignore
 └── LICENSE
 
 ## Roadmap
