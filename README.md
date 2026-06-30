@@ -1,0 +1,46 @@
+# BODH
+
+## > From Data to Decisions.
+
+
+
+#### An AI-powered Decision Intelligence Platform that helps businesses transform raw data into actionable insights, predictions, and recommendations.
+
+
+
+### Current Status
+
+
+
+#### 🚧 Sprint 1 – Product Discovery
+
+
+
+### Vision
+
+
+
+#### To empower businesses to make confident, intelligent, and data-driven decisions through artificial intelligence.
+
+
+
+### Tech Stack (Planned)
+
+
+
+* #### Python
+* #### Flask
+* #### PostgreSQL
+* #### Pandas
+* #### Scikit-learn
+* #### Docker
+* #### AWS
+
+### 
+
+### Repository Structure
+
+
+
+#### Documentation and project initialization are currently in progress.
+
