@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
 
 # C extensions
@@ -216,3 +216,30 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===========================
+# BODH Project
+# ===========================
+
+# Environment
+backend/.env
+backend/.env.*
+
+!backend/.env.example
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# SQLAlchemy / Alembic
+*.db
+
+# Logs
+logs/
+*.log
