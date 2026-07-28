@@ -1,0 +1,1 @@
+Table: usersColumn        Type          Constraints\-----------------------------------------1. &#x20;      
