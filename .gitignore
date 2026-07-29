@@ -2,6 +2,27 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# pytest
+.pytest_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Alembic
+*.pyc
 
 # C extensions
 *.so
