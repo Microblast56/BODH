@@ -102,3 +102,43 @@ The catalog is intentionally separated from inventory.
 A Product defines what an item is, while the Inventory domain will define how much of that Product exists at a particular Store.
 
 This separation allows BODH to support multi-store retailers without duplicating product definitions for every location.
+
+### Inventory Management Architecture
+
+BODH separates product definitions from physical stock.
+
+Products belong to the Retailer-level catalog, while Inventory represents the quantity of a Product available at a particular Store.
+
+The relationship is:
+
+Store
+└── Inventory
+    └── Product
+
+The Store-Product combination is unique within Inventory.
+
+This architecture allows a single Product definition to be shared across multiple Store locations while maintaining independent stock levels for each Store.
+
+Inventory represents current state.
+
+StockMovement represents historical state changes.
+
+The relationship is:
+
+Store
+   │
+   └── Inventory
+          │
+          ├── Product
+          │
+          └── StockMovement
+                  │
+                  └── Employee (optional)
+
+StockMovement uses signed quantity changes so incoming and outgoing inventory operations can be represented consistently.
+
+Stock movements may also contain generic references to future business operations such as sales, purchases, returns, and transfers.
+
+Inventory modification business logic will be implemented in the service layer.
+
+This ensures that updating current inventory and recording the corresponding StockMovement can eventually occur within the same database transaction, preventing inconsistencies between stock state and stock history.

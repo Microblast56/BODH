@@ -80,3 +80,7 @@ class Store(Base, TimestampMixin, ActiveMixin):
     employees: Mapped[list["Employee"]] = relationship(
     back_populates="store",
     )
+
+    inventories: Mapped[list["Inventory"]] = relationship(
+    back_populates="store",
+    )

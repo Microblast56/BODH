@@ -52,3 +52,25 @@
 - Added and successfully applied Category/Product Alembic migration.
 - Added and successfully applied Supplier/ProductSupplier Alembic migration.
 - Database migration head advanced to fef5ff6db301.
+
+### Inventory Management Foundation
+
+- Added Inventory ORM model.
+- Added Store-Inventory relationship.
+- Added Product-Inventory relationship.
+- Added unique Store-Product inventory constraint.
+- Added quantity-on-hand tracking.
+- Added reorder level support.
+- Added reorder quantity support.
+- Added last-restocked timestamp support.
+- Added StockMovement ORM model.
+- Added Inventory-StockMovement relationship.
+- Added optional Employee-StockMovement relationship.
+- Added signed stock quantity change tracking.
+- Added stock movement type support.
+- Added optional stock movement reference metadata.
+- Added stock movement notes support.
+- Added database indexes for inventory and stock movement lookups.
+- Added and successfully applied Store Inventory Alembic migration.
+- Added and successfully applied StockMovement Alembic migration.
+- Database migration head advanced to `f330cc71bc70`.

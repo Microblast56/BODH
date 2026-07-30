@@ -172,3 +172,179 @@ The Product Catalog intentionally separates product definition from store-level 
 Products belong to the Retailer, while inventory quantities will later be maintained independently for each Store.
 
 This allows the same Product to exist across multiple Stores while maintaining different stock levels at each location.
+
+## Inventory Management Domain
+
+The Inventory Management domain tracks the quantity of each Product available at individual Store locations and maintains an audit history of stock changes.
+
+The domain is intentionally separated into two concepts:
+
+- Inventory represents the current stock state.
+- StockMovement represents the historical record of changes to that stock.
+
+This separation allows BODH to efficiently determine current stock levels while preserving the information required for auditing, analytics, and future forecasting.
+
+### Inventory
+
+Inventory connects a Product with a specific Store.
+
+A Product is defined once at the Retailer level but may have different inventory quantities at different Store locations.
+
+For example:
+
+Product
+├── Store A → 50 units
+├── Store B → 18 units
+└── Store C → 0 units
+
+Each Inventory record contains:
+
+- Store
+- Product
+- Quantity on hand
+- Reorder level
+- Reorder quantity
+- Last restocked timestamp
+- Created timestamp
+- Updated timestamp
+
+The combination of `store_id` and `product_id` is unique.
+
+This guarantees that a Store has only one current Inventory record for a particular Product.
+
+### Reorder Information
+
+`reorder_level` represents the quantity at which stock should be considered low.
+
+`reorder_quantity` represents the suggested amount to replenish when stock reaches the reorder level.
+
+These fields provide the foundation for future features such as:
+
+- Low-stock alerts
+- Reorder recommendations
+- Automated replenishment workflows
+- Inventory forecasting
+
+### StockMovement
+
+StockMovement provides an audit trail of changes made to Inventory.
+
+Inventory answers:
+
+> How much stock exists now?
+
+StockMovement answers:
+
+> Why did the stock quantity change?
+
+Each StockMovement contains:
+
+- Inventory reference
+- Optional Employee reference
+- Movement type
+- Quantity change
+- Optional reference type
+- Optional reference ID
+- Notes
+- Created timestamp
+- Updated timestamp
+
+### Movement Quantity
+
+`quantity_change` is stored as a signed integer.
+
+Positive values represent stock entering inventory.
+
+Examples:
+
+- Purchase: +50
+- Customer return: +2
+- Transfer in: +10
+
+Negative values represent stock leaving inventory.
+
+Examples:
+
+- Sale: -5
+- Damage: -2
+- Transfer out: -8
+
+This representation simplifies inventory calculations and historical analysis.
+
+### Movement Types
+
+The initial StockMovement architecture supports movement categories such as:
+
+- PURCHASE
+- SALE
+- RETURN
+- DAMAGE
+- ADJUSTMENT
+- TRANSFER_IN
+- TRANSFER_OUT
+
+Movement types are currently represented as strings so the initial system remains flexible while the business workflow is still being developed.
+
+### Employee Attribution
+
+A StockMovement may optionally reference an Employee.
+
+This allows BODH to record who performed stock operations such as manual adjustments or damage reporting.
+
+The Employee reference is optional because some future stock movements may be generated automatically by the system.
+
+### External References
+
+StockMovement contains optional `reference_type` and `reference_id` fields.
+
+These allow stock movements to be associated with future business entities without tightly coupling the inventory model to those entities.
+
+Examples include:
+
+- Sale
+- Purchase order
+- Return
+- Stock transfer
+- Manual adjustment
+
+For example:
+
+`reference_type = "sale"`
+
+`reference_id = 125`
+
+indicates that the stock movement originated from Sale 125.
+
+### Inventory Relationships
+
+Store
+└── Inventory
+    └── StockMovement
+
+Product
+└── Inventory
+    └── StockMovement
+
+Employee
+└── StockMovement
+
+A Store may contain multiple Inventory records.
+
+A Product may exist in multiple Store inventories.
+
+Each Store-Product pair has exactly one current Inventory record.
+
+Each Inventory record may have multiple StockMovement records.
+
+### Inventory Consistency
+
+Direct modification of inventory quantities should eventually be handled through the service layer rather than scattered throughout the application.
+
+A stock operation should conceptually perform the following transaction:
+
+1. Validate the requested movement.
+2. Update the Inventory quantity.
+3. Create the corresponding StockMovement record.
+4. Commit both operations atomically.
+
+This approach will keep current stock quantities synchronized with their historical audit trail.
