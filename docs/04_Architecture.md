@@ -79,3 +79,26 @@ The Retailer acts as the primary ownership boundary for business data.
 Stores belong to a Retailer, while Employees belong directly to the Retailer and may optionally be assigned to a Store.
 
 This design supports both store-level personnel and business-level roles such as owners, administrators, and regional managers without forcing every employee into a physical store.
+
+### Product Catalog Architecture
+
+BODH models the product catalog at the Retailer level rather than directly at the Store level.
+
+The core catalog entities are:
+
+Retailer
+├── Category
+├── Product
+└── Supplier
+
+Products may optionally belong to Categories.
+
+Products and Suppliers have a many-to-many relationship implemented through the ProductSupplier association model.
+
+ProductSupplier also stores supplier-specific metadata such as purchase price, supplier product code, and preferred supplier status.
+
+The catalog is intentionally separated from inventory.
+
+A Product defines what an item is, while the Inventory domain will define how much of that Product exists at a particular Store.
+
+This separation allows BODH to support multi-store retailers without duplicating product definitions for every location.

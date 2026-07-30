@@ -84,3 +84,91 @@ The implemented schema uses:
 - Active/inactive status fields.
 - SQLAlchemy ORM relationships for application-level navigation.
 - Alembic migrations for controlled schema evolution.
+
+## Product Catalog Domain
+
+The Product Catalog domain provides the foundation for managing products, categories, and suppliers within each retail business.
+
+### Category
+
+Categories allow retailers to organize their product catalog.
+
+Key characteristics:
+
+- Each Category belongs to one Retailer.
+- Category names are unique within a Retailer.
+- Categories may contain multiple Products.
+- Products are allowed to exist without a Category.
+
+### Product
+
+Products represent the items managed and eventually sold by a Retailer.
+
+Each Product belongs directly to a Retailer.
+
+A Product may optionally belong to a Category.
+
+Important product attributes include:
+
+- Name
+- SKU
+- Barcode
+- Description
+- Cost price
+- Selling price
+- Unit
+- Tax rate
+- Active status
+
+SKU values are unique within each Retailer.
+
+Financial values such as cost price and selling price use fixed-precision decimal database types rather than floating-point values.
+
+### Supplier
+
+Suppliers represent organizations or individuals from whom a Retailer can obtain products.
+
+Each Supplier belongs to one Retailer.
+
+Supplier information may include:
+
+- Name
+- Contact person
+- Email
+- Phone
+- Address
+
+Supplier names are unique within each Retailer.
+
+### ProductSupplier
+
+Products and Suppliers use a many-to-many relationship through the ProductSupplier association model.
+
+This allows:
+
+- One Product to be available from multiple Suppliers.
+- One Supplier to provide multiple Products.
+
+The association also stores supplier-specific information:
+
+- Supplier product code
+- Purchase price
+- Preferred supplier status
+
+Each Product-Supplier pair is unique.
+
+### Product Catalog Relationships
+
+Retailer
+├── Categories
+│   └── Products
+├── Products
+│   └── ProductSupplier
+│       └── Supplier
+└── Suppliers
+
+The Product Catalog intentionally separates product definition from store-level inventory.
+
+Products belong to the Retailer, while inventory quantities will later be maintained independently for each Store.
+
+This allows the same Product to exist across multiple Stores while maintaining different stock levels at each location.

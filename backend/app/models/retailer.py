@@ -33,3 +33,15 @@ class Retailer(Base, TimestampMixin, ActiveMixin):
     employees: Mapped[list["Employee"]] = relationship(
     back_populates="retailer",
     )
+
+    categories: Mapped[list["Category"]] = relationship(
+    back_populates="retailer",
+    )
+
+    products: Mapped[list["Product"]] = relationship(
+    back_populates="retailer",
+    )
+
+    suppliers: Mapped[list["Supplier"]] = relationship(
+    back_populates="retailer",
+    )
