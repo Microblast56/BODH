@@ -63,3 +63,19 @@ The database layer is divided into:
 - `services/` – business logic.
 
 This separation follows the Repository Pattern and keeps the business logic independent from persistence details.
+
+
+### Retail Business Hierarchy
+
+BODH currently models the core retail organization around the Retailer entity.
+
+Retailer
+├── Stores
+└── Employees
+    └── Optional Store Assignment
+
+The Retailer acts as the primary ownership boundary for business data.
+
+Stores belong to a Retailer, while Employees belong directly to the Retailer and may optionally be assigned to a Store.
+
+This design supports both store-level personnel and business-level roles such as owners, administrators, and regional managers without forcing every employee into a physical store.

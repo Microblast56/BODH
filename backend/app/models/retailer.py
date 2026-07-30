@@ -1,5 +1,5 @@
 from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import ActiveMixin, TimestampMixin
@@ -24,4 +24,12 @@ class Retailer(Base, TimestampMixin, ActiveMixin):
     phone: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
+    )
+
+    stores: Mapped[list["Store"]] = relationship(
+    back_populates="retailer",
+    )
+
+    employees: Mapped[list["Employee"]] = relationship(
+    back_populates="retailer",
     )
