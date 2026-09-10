@@ -8,6 +8,11 @@ from app.schemas.store import (
     StoreResponse,
     StoreUpdate,
 )
+from app.schemas.employee import (
+    EmployeeCreate,
+    EmployeeResponse,
+    EmployeeUpdate,
+)
 
 __all__ = [
     "RetailerCreate",
@@ -16,4 +21,7 @@ __all__ = [
     "StoreCreate",
     "StoreResponse",
     "StoreUpdate",
+    "EmployeeCreate",
+    "EmployeeResponse",
+    "EmployeeUpdate",
 ]

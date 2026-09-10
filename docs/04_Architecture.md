@@ -142,3 +142,17 @@ Stock movements may also contain generic references to future business operation
 Inventory modification business logic will be implemented in the service layer.
 
 This ensures that updating current inventory and recording the corresponding StockMovement can eventually occur within the same database transaction, preventing inconsistencies between stock state and stock history.
+
+Client
+   │
+FastAPI
+   │
+API Router
+   │
+Services
+   │
+Repositories
+   │
+SQLAlchemy ORM
+   │
+PostgreSQL

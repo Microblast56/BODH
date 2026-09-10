@@ -317,9 +317,11 @@ indicates that the stock movement originated from Sale 125.
 
 ### Inventory Relationships
 
-Store
-└── Inventory
-    └── StockMovement
+Retailer
+    │
+    └── Store
+        └── Inventory
+            └── StockMovement
 
 Product
 └── Inventory

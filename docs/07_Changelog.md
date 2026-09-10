@@ -74,3 +74,15 @@
 - Added and successfully applied Store Inventory Alembic migration.
 - Added and successfully applied StockMovement Alembic migration.
 - Database migration head advanced to `f330cc71bc70`.
+
+## 2026-08-03
+
+### Added
+- Complete Store CRUD module.
+- Added Store Repository layer.
+- Added Store Service layer.
+- Added Store API endpoints.
+- Added Store request/response schemas.
+- Added retailer ownership validation.
+- Added duplicate store code validation.
+- Added Swagger documentation for Store APIs.
