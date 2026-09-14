@@ -7,7 +7,8 @@ from app.models.supplier import Supplier
 from app.models.product_supplier import ProductSupplier
 from app.models.inventory import Inventory
 from app.models.stock_movement import StockMovement
-
+from app.models.restaurant import Restaurant
+from app.models.outlet import Outlet
 
 __all__ = [
     "Retailer",
@@ -19,4 +20,6 @@ __all__ = [
     "ProductSupplier",
     "Inventory",
     "StockMovement",
+    "Restaurant",
+    "Outlet",
 ]

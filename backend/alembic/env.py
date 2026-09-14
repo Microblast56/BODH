@@ -6,9 +6,19 @@ from sqlalchemy import engine_from_config, pool
 from app.core.config import settings
 from app.db.base import Base
 
-# Import models so SQLAlchemy registers them in Base.metadata.
-from app.models import Retailer
-
+from app.models import (
+    Category,
+    Employee,
+    Inventory,
+    Outlet,
+    Product,
+    ProductSupplier,
+    Restaurant,
+    Retailer,
+    StockMovement,
+    Store,
+    Supplier,
+)
 
 config = context.config
 
