@@ -81,9 +81,10 @@ class EmployeeRepository:
         return employee
 
     def delete(
-        self,
-        db: Session,
-        employee: Employee,
+    	self,
+    	db: Session,
+    	employee: Employee,
     ) -> None:
-        db.delete(employee)
-        db.commit()
+    	employee.is_active = False
+    	db.commit()
+    	db.refresh(employee)

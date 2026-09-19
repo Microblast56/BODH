@@ -5,7 +5,10 @@ from app.core.exceptions import (
     ResourceNotFoundError,
 )
 from app.models import Employee
-from app.repositories import EmployeeRepository
+from app.repositories import (
+    EmployeeRepository,
+    RetailerRepository,
+)
 from app.schemas import EmployeeCreate, EmployeeUpdate
 
 
@@ -13,14 +16,29 @@ class EmployeeService:
     def __init__(
         self,
         repository: EmployeeRepository | None = None,
+        retailer_repository: RetailerRepository | None = None,
     ) -> None:
         self.repository = repository or EmployeeRepository()
+        self.retailer_repository = (
+            retailer_repository or RetailerRepository()
+        )
 
     def create_employee(
         self,
         db: Session,
         employee_data: EmployeeCreate,
     ) -> Employee:
+
+        retailer = self.retailer_repository.get_by_id(
+            db,
+            employee_data.retailer_id,
+        )
+
+        if retailer is None:
+            raise ResourceNotFoundError(
+                "Retailer not found."
+            )
+
         if employee_data.email:
             existing_employee = self.repository.get_by_email(
                 db,

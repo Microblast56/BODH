@@ -13,6 +13,17 @@ from app.schemas.employee import (
     EmployeeResponse,
     EmployeeUpdate,
 )
+from app.schemas.restaurant import (
+    RestaurantCreate,
+    RestaurantResponse,
+    RestaurantUpdate,
+)
+from app.schemas.outlet import (
+    OutletCreate,
+    OutletResponse,
+    OutletUpdate,
+)
+
 
 __all__ = [
     "RetailerCreate",
@@ -24,4 +35,7 @@ __all__ = [
     "EmployeeCreate",
     "EmployeeResponse",
     "EmployeeUpdate",
+    "OutletCreate",
+    "OutletResponse",
+    "OutletUpdate",
 ]
