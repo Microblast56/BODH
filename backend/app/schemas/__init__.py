@@ -23,6 +23,16 @@ from app.schemas.outlet import (
     OutletResponse,
     OutletUpdate,
 )
+from app.schemas.category import (
+    CategoryCreate,
+    CategoryResponse,
+    CategoryUpdate,
+)
+from app.schemas.product import (
+    ProductCreate,
+    ProductResponse,
+    ProductUpdate,
+)
 
 
 __all__ = [
@@ -38,4 +48,10 @@ __all__ = [
     "OutletCreate",
     "OutletResponse",
     "OutletUpdate",
+    "CategoryCreate",
+    "CategoryResponse",
+    "CategoryUpdate",
+    "ProductCreate",
+    "ProductResponse",
+    "ProductUpdate",
 ]

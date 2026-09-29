@@ -5,6 +5,8 @@ from app.api.v1.stores import router as store_router
 from app.api.v1.employees import router as employee_router
 from app.api.v1.restaurants import router as restaurants_router
 from app.api.v1.outlets import router as outlets_router
+from app.api.v1.categories import router as category_router
+from app.api.v1.products import router as product_router
 
 api_router = APIRouter()
 
@@ -13,3 +15,5 @@ api_router.include_router(store_router)
 api_router.include_router(employee_router)
 api_router.include_router(restaurants_router)
 api_router.include_router(outlets_router)
+api_router.include_router(category_router)
+api_router.include_router(product_router)
