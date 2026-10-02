@@ -5,6 +5,10 @@ from app.repositories.restaurant import RestaurantRepository
 from app.repositories.outlet import OutletRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.product import ProductRepository
+from app.repositories.supplier import SupplierRepository
+from app.repositories.product_supplier import ProductSupplierRepository
+from app.repositories.inventory import InventoryRepository
+from app.repositories.stock_movement import StockMovementRepository
 
 __all__ = [
     "RetailerRepository",
@@ -14,4 +18,8 @@ __all__ = [
     "OutletRepository",
     "CategoryRepository",
     "ProductRepository",
+    "SupplierRepository",
+    "ProductSupplierRepository",
+    "InventoryRepository",
+    "StockMovementRepository",
 ]

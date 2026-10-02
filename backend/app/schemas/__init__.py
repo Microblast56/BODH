@@ -33,7 +33,26 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdate,
 )
-
+from app.schemas.supplier import (
+    SupplierCreate,
+    SupplierUpdate,
+    SupplierResponse,
+)
+from app.schemas.product_supplier import (
+    ProductSupplierCreate,
+    ProductSupplierUpdate,
+    ProductSupplierResponse,
+)
+from app.schemas.inventory import (
+    InventoryCreate,
+    InventoryUpdate,
+    InventoryResponse,
+)
+from app.schemas.stock_movement import (
+    StockMovementCreate,
+    StockMovementUpdate,
+    StockMovementResponse,
+)
 
 __all__ = [
     "RetailerCreate",
@@ -54,4 +73,16 @@ __all__ = [
     "ProductCreate",
     "ProductResponse",
     "ProductUpdate",
-]
+    "SupplierCreate",
+    "SupplierUpdate",
+    "SupplierResponse",
+    "ProductSupplierCreate",
+    "ProductSupplierUpdate",
+    "ProductSupplierResponse",
+    "InventoryCreate",
+    "InventoryUpdate",
+    "InventoryResponse",
+    "StockMovementCreate",
+    "StockMovementUpdate",
+    "StockMovementResponse",
+     ]

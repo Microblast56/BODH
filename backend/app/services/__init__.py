@@ -5,6 +5,10 @@ from app.services.restaurant import RestaurantService
 from app.services.outlet import OutletService
 from app.services.category import CategoryService
 from app.services.product import ProductService
+from app.services.supplier import SupplierService
+from app.services.product_supplier import ProductSupplierService
+from app.services.inventory import InventoryService
+from app.services.stock_movement import StockMovementService
 
 __all__ = [
     "RetailerService",
@@ -14,4 +18,8 @@ __all__ = [
     "OutletService",
     "CategoryService",
     "ProductService",
+    "SupplierService",
+    "ProductSupplierService",
+    "InventoryService",
+    "StockMovementService",
 ]
