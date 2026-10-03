@@ -46,7 +46,7 @@ class CategoryService:
 
         if existing_category:
             raise ResourceConflictError(
-                "A category with this name already exists for this retailer."
+                "Category with this name already exists for this retailer."
             )
 
         return self.repository.create(
@@ -107,7 +107,7 @@ class CategoryService:
 
             if existing_category:
                 raise ResourceConflictError(
-                    "A category with this name already exists for this retailer."
+                    "Category with this name already exists for this retailer."
                 )
 
         return self.repository.update(

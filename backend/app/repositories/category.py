@@ -1,18 +1,21 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Category
-from app.schemas import CategoryCreate, CategoryUpdate
+from app.models.category import Category
+from app.schemas.category import CategoryCreate, CategoryUpdate
 
 
 class CategoryRepository:
+
     def create(
         self,
         db: Session,
         category_data: CategoryCreate,
     ) -> Category:
         category = Category(
-            **category_data.model_dump()
+            retailer_id=category_data.retailer_id,
+            name=category_data.name,
+            description=category_data.description,
         )
 
         db.add(category)
@@ -26,8 +29,18 @@ class CategoryRepository:
         db: Session,
         category_id: int,
     ) -> Category | None:
+        return db.get(Category, category_id)
+
+    def get_by_name(
+        self,
+        db: Session,
+        retailer_id: int,
+        name: str,
+    ) -> Category | None:
         statement = select(Category).where(
-            Category.id == category_id
+            Category.retailer_id == retailer_id,
+            Category.name == name,
+            Category.is_active.is_(True),
         )
 
         return db.scalar(statement)
@@ -40,25 +53,12 @@ class CategoryRepository:
     ) -> list[Category]:
         statement = (
             select(Category)
-            .order_by(Category.id)
+            .where(Category.is_active.is_(True))
             .offset(offset)
             .limit(limit)
         )
 
         return list(db.scalars(statement).all())
-
-    def get_by_name(
-        self,
-        db: Session,
-        retailer_id: int,
-        name: str,
-    ) -> Category | None:
-        statement = select(Category).where(
-            Category.retailer_id == retailer_id,
-            Category.name == name,
-        )
-
-        return db.scalar(statement)
 
     def update(
         self,
@@ -83,5 +83,6 @@ class CategoryRepository:
         db: Session,
         category: Category,
     ) -> None:
-        db.delete(category)
+        category.is_active = False
+
         db.commit()

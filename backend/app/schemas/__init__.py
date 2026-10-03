@@ -53,6 +53,11 @@ from app.schemas.stock_movement import (
     StockMovementUpdate,
     StockMovementResponse,
 )
+from app.schemas.category import ( 
+    CategoryCreate, 
+    CategoryResponse, 
+    CategoryUpdate
+)
 
 __all__ = [
     "RetailerCreate",
@@ -85,4 +90,7 @@ __all__ = [
     "StockMovementCreate",
     "StockMovementUpdate",
     "StockMovementResponse",
+    "CategoryCreate", 
+    "CategoryResponse", 
+    "CategoryUpdate",
      ]
