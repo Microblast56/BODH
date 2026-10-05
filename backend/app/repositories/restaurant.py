@@ -13,6 +13,7 @@ class RestaurantRepository:
         db.add(restaurant)
         db.commit()
         db.refresh(restaurant)
+
         return restaurant
 
     def get_by_id(
@@ -22,7 +23,10 @@ class RestaurantRepository:
     ) -> Restaurant | None:
         return (
             db.query(Restaurant)
-            .filter(Restaurant.id == restaurant_id)
+            .filter(
+                Restaurant.id == restaurant_id,
+                Restaurant.is_active.is_(True),
+            )
             .first()
         )
 
@@ -33,7 +37,10 @@ class RestaurantRepository:
     ) -> Restaurant | None:
         return (
             db.query(Restaurant)
-            .filter(Restaurant.email == email)
+            .filter(
+                Restaurant.email == email,
+                Restaurant.is_active.is_(True),
+            )
             .first()
         )
 
@@ -45,6 +52,8 @@ class RestaurantRepository:
     ) -> list[Restaurant]:
         return (
             db.query(Restaurant)
+            .filter(Restaurant.is_active.is_(True))
+            .order_by(Restaurant.id)
             .offset(offset)
             .limit(limit)
             .all()
@@ -57,6 +66,7 @@ class RestaurantRepository:
     ) -> Restaurant:
         db.commit()
         db.refresh(restaurant)
+
         return restaurant
 
     def delete(

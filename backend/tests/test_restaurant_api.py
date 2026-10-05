@@ -1,21 +1,15 @@
-from app.models import Restaurant
-
-
 def test_create_restaurant_api(client):
-    # Arrange
     payload = {
         "name": "API Test Restaurant",
         "email": "api-restaurant@example.com",
         "phone": "1111111111",
     }
 
-    # Act
     response = client.post(
         "/api/v1/restaurants",
         json=payload,
     )
 
-    # Assert
     assert response.status_code == 201
 
     data = response.json()
@@ -27,37 +21,47 @@ def test_create_restaurant_api(client):
     assert data["is_active"] is True
 
 
-def test_create_restaurant_api_rejects_duplicate_email(
-    client,
-):
-    # Arrange
-    first_payload = {
-        "name": "First Restaurant",
-        "email": "duplicate@example.com",
-        "phone": "2222222222",
-    }
+def test_create_restaurant_api_without_email(client):
+    response = client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "No Email Restaurant",
+            "phone": "2222222222",
+        },
+    )
 
-    second_payload = {
-        "name": "Second Restaurant",
+    assert response.status_code == 201
+
+    data = response.json()
+
+    assert data["name"] == "No Email Restaurant"
+    assert data["email"] is None
+    assert data["phone"] == "2222222222"
+    assert data["is_active"] is True
+
+
+def test_create_restaurant_api_rejects_duplicate_email(client):
+    payload = {
+        "name": "First Restaurant",
         "email": "duplicate@example.com",
         "phone": "3333333333",
     }
 
-    # Create first restaurant
     first_response = client.post(
         "/api/v1/restaurants",
-        json=first_payload,
+        json=payload,
     )
 
     assert first_response.status_code == 201
 
-    # Act
     duplicate_response = client.post(
         "/api/v1/restaurants",
-        json=second_payload,
+        json={
+            **payload,
+            "name": "Second Restaurant",
+        },
     )
 
-    # Assert
     assert duplicate_response.status_code == 409
 
     data = duplicate_response.json()
@@ -68,29 +72,23 @@ def test_create_restaurant_api_rejects_duplicate_email(
 
 
 def test_get_restaurant_api(client):
-    # Arrange
-    payload = {
-        "name": "GET API Restaurant",
-        "email": "get-restaurant@example.com",
-        "phone": "4444444444",
-    }
-
-    create_response = client.post(
+    response = client.post(
         "/api/v1/restaurants",
-        json=payload,
+        json={
+            "name": "GET API Restaurant",
+            "email": "get-restaurant@example.com",
+            "phone": "4444444444",
+        },
     )
 
-    assert create_response.status_code == 201
+    assert response.status_code == 201
 
-    created_restaurant = create_response.json()
-    restaurant_id = created_restaurant["id"]
+    restaurant_id = response.json()["id"]
 
-    # Act
     response = client.get(
         f"/api/v1/restaurants/{restaurant_id}",
     )
 
-    # Assert
     assert response.status_code == 200
 
     data = response.json()
@@ -112,5 +110,195 @@ def test_get_restaurant_api_returns_404_for_nonexistent_restaurant(
     assert response.status_code == 404
 
     data = response.json()
+
+    assert data["detail"] == "Restaurant not found."
+
+
+def test_list_restaurants_api(client):
+    client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "First Listed Restaurant",
+            "email": "list-first@example.com",
+        },
+    )
+
+    client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "Second Listed Restaurant",
+            "email": "list-second@example.com",
+        },
+    )
+
+    response = client.get(
+        "/api/v1/restaurants",
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 2
+
+
+def test_list_restaurants_api_supports_pagination(client):
+    for index in range(3):
+        response = client.post(
+            "/api/v1/restaurants",
+            json={
+                "name": f"Pagination Restaurant {index}",
+                "email": f"pagination-{index}@example.com",
+            },
+        )
+
+        assert response.status_code == 201
+
+    response = client.get(
+        "/api/v1/restaurants?offset=1&limit=1",
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+
+
+def test_update_restaurant_api(client):
+    create_response = client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "Original Restaurant",
+            "email": "update@example.com",
+            "phone": "5555555555",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    restaurant_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/api/v1/restaurants/{restaurant_id}",
+        json={
+            "name": "Updated Restaurant",
+            "phone": "6666666666",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["id"] == restaurant_id
+    assert data["name"] == "Updated Restaurant"
+    assert data["email"] == "update@example.com"
+    assert data["phone"] == "6666666666"
+    assert data["is_active"] is True
+
+
+def test_update_restaurant_api_returns_404_for_nonexistent_restaurant(
+    client,
+):
+    response = client.patch(
+        "/api/v1/restaurants/999999",
+        json={
+            "name": "Updated Restaurant",
+        },
+    )
+
+    assert response.status_code == 404
+
+    data = response.json()
+
+    assert data["detail"] == "Restaurant not found."
+
+
+def test_update_restaurant_api_rejects_duplicate_email(client):
+    first_response = client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "First Restaurant",
+            "email": "first-update@example.com",
+        },
+    )
+
+    assert first_response.status_code == 201
+
+    second_response = client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "Second Restaurant",
+            "email": "second-update@example.com",
+        },
+    )
+
+    assert second_response.status_code == 201
+
+    second_id = second_response.json()["id"]
+
+    response = client.patch(
+        f"/api/v1/restaurants/{second_id}",
+        json={
+            "email": "first-update@example.com",
+        },
+    )
+
+    assert response.status_code == 409
+
+    data = response.json()
+
+    assert data["detail"] == (
+        "Restaurant with this email already exists."
+    )
+
+
+def test_delete_restaurant_api(client):
+    create_response = client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "Delete Restaurant",
+            "email": "delete-api@example.com",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    restaurant_id = create_response.json()["id"]
+
+    response = client.delete(
+        f"/api/v1/restaurants/{restaurant_id}",
+    )
+
+    assert response.status_code == 204
+
+
+def test_delete_restaurant_api_returns_404_after_deletion(client):
+    create_response = client.post(
+        "/api/v1/restaurants",
+        json={
+            "name": "Delete Then Get Restaurant",
+            "email": "delete-get@example.com",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    restaurant_id = create_response.json()["id"]
+
+    delete_response = client.delete(
+        f"/api/v1/restaurants/{restaurant_id}",
+    )
+
+    assert delete_response.status_code == 204
+
+    get_response = client.get(
+        f"/api/v1/restaurants/{restaurant_id}",
+    )
+
+    assert get_response.status_code == 404
+
+    data = get_response.json()
 
     assert data["detail"] == "Restaurant not found."
