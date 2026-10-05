@@ -121,7 +121,7 @@ def test_create_category_rejects_duplicate_name(db):
     except ResourceConflictError as exc:
         assert (
             str(exc)
-            == "Category with this name already exists for this retailer."
+            == "A category with this name already exists for this retailer."
         )
 
 
@@ -284,7 +284,7 @@ def test_update_category_rejects_duplicate_name(db):
     except ResourceConflictError as exc:
         assert (
             str(exc)
-            == "Category with this name already exists for this retailer."
+            == "A category with this name already exists for this retailer."
         )
 
 

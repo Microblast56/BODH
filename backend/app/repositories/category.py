@@ -13,9 +13,7 @@ class CategoryRepository:
         category_data: CategoryCreate,
     ) -> Category:
         category = Category(
-            retailer_id=category_data.retailer_id,
-            name=category_data.name,
-            description=category_data.description,
+            **category_data.model_dump()
         )
 
         db.add(category)
@@ -29,7 +27,12 @@ class CategoryRepository:
         db: Session,
         category_id: int,
     ) -> Category | None:
-        return db.get(Category, category_id)
+        statement = select(Category).where(
+            Category.id == category_id,
+            Category.is_active.is_(True),
+        )
+
+        return db.scalar(statement)
 
     def get_by_name(
         self,
@@ -54,6 +57,7 @@ class CategoryRepository:
         statement = (
             select(Category)
             .where(Category.is_active.is_(True))
+            .order_by(Category.id)
             .offset(offset)
             .limit(limit)
         )
@@ -86,3 +90,4 @@ class CategoryRepository:
         category.is_active = False
 
         db.commit()
+        db.refresh(category)
