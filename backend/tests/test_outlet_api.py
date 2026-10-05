@@ -367,3 +367,41 @@ def test_delete_outlet_api_returns_404_when_not_found(client):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Outlet not found."
+
+def test_delete_outlet_api_returns_404_after_deletion(client, db):
+    # Arrange: create a restaurant for the outlet.
+    restaurant = create_restaurant(
+        db,
+        name="Delete Test Restaurant",
+        email="delete-test-restaurant@example.com",
+    )
+
+    create_response = client.post(
+        "/api/v1/outlets",
+        json={
+            "restaurant_id": restaurant.id,
+            "name": "Delete Test Outlet",
+            "code": "DELETE-TEST",
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    outlet_id = create_response.json()["id"]
+
+    # Act: delete the outlet.
+    delete_response = client.delete(
+        f"/api/v1/outlets/{outlet_id}",
+    )
+
+    # Assert: deletion succeeds.
+    assert delete_response.status_code == 204
+    assert delete_response.content == b""
+
+    # Assert: the soft-deleted outlet is no longer accessible.
+    get_response = client.get(
+        f"/api/v1/outlets/{outlet_id}",
+    )
+
+    assert get_response.status_code == 404
+    assert get_response.json()["detail"] == "Outlet not found."

@@ -15,6 +15,7 @@ class OutletRepository:
         db.add(outlet)
         db.commit()
         db.refresh(outlet)
+
         return outlet
 
     def get_by_id(
@@ -24,7 +25,10 @@ class OutletRepository:
     ) -> Outlet | None:
         return (
             db.query(Outlet)
-            .filter(Outlet.id == outlet_id)
+            .filter(
+                Outlet.id == outlet_id,
+                Outlet.is_active.is_(True),
+            )
             .first()
         )
 
@@ -39,6 +43,7 @@ class OutletRepository:
             .filter(
                 Outlet.restaurant_id == restaurant_id,
                 Outlet.code == code,
+                Outlet.is_active.is_(True),
             )
             .first()
         )
@@ -51,15 +56,18 @@ class OutletRepository:
         limit: int = 100,
     ) -> List[Outlet]:
 
-        query = db.query(Outlet)
+        query = db.query(Outlet).filter(
+            Outlet.is_active.is_(True),
+        )
 
         if restaurant_id is not None:
             query = query.filter(
-                Outlet.restaurant_id == restaurant_id
+                Outlet.restaurant_id == restaurant_id,
             )
 
         return (
             query
+            .order_by(Outlet.id)
             .offset(offset)
             .limit(limit)
             .all()
@@ -73,8 +81,10 @@ class OutletRepository:
         return (
             db.query(Outlet)
             .filter(
-                Outlet.restaurant_id == restaurant_id
+                Outlet.restaurant_id == restaurant_id,
+                Outlet.is_active.is_(True),
             )
+            .order_by(Outlet.id)
             .all()
         )
 
@@ -85,6 +95,7 @@ class OutletRepository:
     ) -> Outlet:
         db.commit()
         db.refresh(outlet)
+
         return outlet
 
     def delete(
@@ -93,5 +104,6 @@ class OutletRepository:
         outlet: Outlet,
     ) -> None:
         outlet.is_active = False
+
         db.commit()
         db.refresh(outlet)
