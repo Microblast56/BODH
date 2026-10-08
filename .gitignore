@@ -264,3 +264,7 @@ Desktop.ini
 # Logs
 logs/
 *.log
+
+# Database backups
+*.dump
+*.sql
