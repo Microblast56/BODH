@@ -59,3 +59,33 @@ class InventoryResponse(InventoryBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+class StockAdjustmentBase(BaseModel):
+    quantity: int = Field(
+        gt=0,
+    )
+
+    employee_id: int | None = Field(
+        default=None,
+        gt=0,
+    )
+
+    reference_type: str | None = Field(
+        default=None,
+        max_length=50,
+    )
+
+    reference_id: int | None = Field(
+        default=None,
+        gt=0,
+    )
+
+    notes: str | None = None
+
+
+class StockInCreate(StockAdjustmentBase):
+    pass
+
+
+class StockOutCreate(StockAdjustmentBase):
+    pass

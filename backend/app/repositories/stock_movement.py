@@ -102,3 +102,18 @@ class StockMovementRepository:
     ) -> None:
         db.delete(movement)
         db.commit()
+
+    def create_pending(
+        self,
+        db: Session,
+        movement_data: StockMovementCreate,
+    ) -> StockMovement:
+        movement = StockMovement(
+            **movement_data.model_dump()
+        )
+
+        db.add(movement)
+        db.flush()
+        db.refresh(movement)
+
+        return movement

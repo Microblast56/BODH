@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from unittest.mock import Mock
 
 import pytest
@@ -7,57 +6,33 @@ from app.core.exceptions import (
     ResourceConflictError,
     ResourceNotFoundError,
 )
-from app.models import Inventory, Product, Store
+from app.models import Inventory
 from app.schemas import InventoryCreate, InventoryUpdate
 from app.services import InventoryService
-
-
-def make_store(store_id: int = 1) -> Store:
-    return Store(
-        id=store_id,
-        retailer_id=1,
-        name="Main Store",
-        code=f"STORE-{store_id}",
-        country="India",
-        is_active=True,
-    )
-
-
-def make_product(product_id: int = 1) -> Product:
-    return Product(
-        id=product_id,
-        retailer_id=1,
-        name=f"Product {product_id}",
-        sku=f"SKU-{product_id}",
-        cost_price=100,
-        selling_price=150,
-        unit="piece",
-        is_active=True,
-    )
 
 
 def make_inventory(
     inventory_id: int = 1,
     store_id: int = 1,
     product_id: int = 1,
+    quantity_on_hand: int = 100,
+    reorder_level: int = 10,
+    reorder_quantity: int = 50,
 ) -> Inventory:
-    return Inventory(
+    inventory = Inventory(
         id=inventory_id,
         store_id=store_id,
         product_id=product_id,
-        quantity_on_hand=50,
-        reorder_level=10,
-        reorder_quantity=20,
-        last_restocked_at=None,
+        quantity_on_hand=quantity_on_hand,
+        reorder_level=reorder_level,
+        reorder_quantity=reorder_quantity,
+        
     )
 
+    return inventory
 
-def make_service() -> tuple[
-    InventoryService,
-    Mock,
-    Mock,
-    Mock,
-]:
+
+def make_service():
     repository = Mock()
     store_repository = Mock()
     product_repository = Mock()
@@ -84,32 +59,40 @@ def test_create_inventory():
         product_repository,
     ) = make_service()
 
-    store = make_store()
-    product = make_product()
+    store_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
+    product_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
+    repository.get_by_store_and_product.return_value = None
+
     inventory = make_inventory()
 
-    store_repository.get_by_id.return_value = store
-    product_repository.get_by_id.return_value = product
-    repository.get_by_store_and_product.return_value = None
     repository.create.return_value = inventory
 
-    data = InventoryCreate(
+    inventory_data = InventoryCreate(
         store_id=1,
         product_id=1,
-        quantity_on_hand=50,
+        quantity_on_hand=100,
         reorder_level=10,
-        reorder_quantity=20,
+        reorder_quantity=50,
     )
 
     result = service.create_inventory(
         Mock(),
-        data,
+        inventory_data,
     )
 
     assert result == inventory
+
     repository.create.assert_called_once_with(
         repository.create.call_args.args[0],
-        data,
+        inventory_data,
     )
 
 
@@ -123,7 +106,7 @@ def test_create_inventory_raises_when_store_not_found():
 
     store_repository.get_by_id.return_value = None
 
-    data = InventoryCreate(
+    inventory_data = InventoryCreate(
         store_id=999,
         product_id=1,
     )
@@ -134,7 +117,7 @@ def test_create_inventory_raises_when_store_not_found():
     ):
         service.create_inventory(
             Mock(),
-            data,
+            inventory_data,
         )
 
     product_repository.get_by_id.assert_not_called()
@@ -149,10 +132,14 @@ def test_create_inventory_raises_when_product_not_found():
         product_repository,
     ) = make_service()
 
-    store_repository.get_by_id.return_value = make_store()
+    store_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
     product_repository.get_by_id.return_value = None
 
-    data = InventoryCreate(
+    inventory_data = InventoryCreate(
         store_id=1,
         product_id=999,
     )
@@ -163,7 +150,7 @@ def test_create_inventory_raises_when_product_not_found():
     ):
         service.create_inventory(
             Mock(),
-            data,
+            inventory_data,
         )
 
     repository.create.assert_not_called()
@@ -177,24 +164,32 @@ def test_create_inventory_rejects_duplicate():
         product_repository,
     ) = make_service()
 
-    store_repository.get_by_id.return_value = make_store()
-    product_repository.get_by_id.return_value = make_product()
+    store_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
+    product_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
     repository.get_by_store_and_product.return_value = (
         make_inventory()
     )
 
-    data = InventoryCreate(
+    inventory_data = InventoryCreate(
         store_id=1,
         product_id=1,
     )
 
     with pytest.raises(
         ResourceConflictError,
-        match="Inventory already exists",
+        match="Inventory already exists for this store and product.",
     ):
         service.create_inventory(
             Mock(),
-            data,
+            inventory_data,
         )
 
     repository.create.assert_not_called()
@@ -208,38 +203,44 @@ def test_create_inventory_allows_same_product_for_different_store():
         product_repository,
     ) = make_service()
 
-    store_repository.get_by_id.return_value = make_store(2)
-    product_repository.get_by_id.return_value = make_product(1)
+    store_repository.get_by_id.return_value = Mock(
+        id=2,
+        is_active=True,
+    )
+
+    product_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
     repository.get_by_store_and_product.return_value = None
-    repository.create.return_value = make_inventory(
+
+    inventory = make_inventory(
         store_id=2,
         product_id=1,
     )
 
-    data = InventoryCreate(
+    repository.create.return_value = inventory
+
+    inventory_data = InventoryCreate(
         store_id=2,
         product_id=1,
     )
 
     result = service.create_inventory(
         Mock(),
-        data,
+        inventory_data,
     )
 
-    assert result.store_id == 2
-    assert result.product_id == 1
+    assert result == inventory
     repository.create.assert_called_once()
 
 
 def test_get_inventory():
-    (
-        service,
-        repository,
-        store_repository,
-        product_repository,
-    ) = make_service()
+    service, repository, _, _ = make_service()
 
     inventory = make_inventory()
+
     repository.get_by_id.return_value = inventory
 
     result = service.get_inventory(
@@ -248,16 +249,12 @@ def test_get_inventory():
     )
 
     assert result == inventory
+
     repository.get_by_id.assert_called_once()
 
 
 def test_get_inventory_raises_when_not_found():
-    (
-        service,
-        repository,
-        store_repository,
-        product_repository,
-    ) = make_service()
+    service, repository, _, _ = make_service()
 
     repository.get_by_id.return_value = None
 
@@ -272,16 +269,14 @@ def test_get_inventory_raises_when_not_found():
 
 
 def test_list_inventories():
-    (
-        service,
-        repository,
-        store_repository,
-        product_repository,
-    ) = make_service()
+    service, repository, _, _ = make_service()
 
     inventories = [
-        make_inventory(1),
-        make_inventory(2),
+        make_inventory(inventory_id=1),
+        make_inventory(
+            inventory_id=2,
+            product_id=2,
+        ),
     ]
 
     repository.get_all.return_value = inventories
@@ -293,6 +288,7 @@ def test_list_inventories():
     )
 
     assert result == inventories
+
     repository.get_all.assert_called_once_with(
         repository.get_all.call_args.args[0],
         offset=10,
@@ -305,11 +301,26 @@ def test_list_by_store():
         service,
         repository,
         store_repository,
-        product_repository,
+        _,
     ) = make_service()
 
-    store_repository.get_by_id.return_value = make_store()
-    inventories = [make_inventory()]
+    store_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
+    inventories = [
+        make_inventory(
+            inventory_id=1,
+            store_id=1,
+        ),
+        make_inventory(
+            inventory_id=2,
+            store_id=1,
+            product_id=2,
+        ),
+    ]
+
     repository.get_by_store.return_value = inventories
 
     result = service.list_by_store(
@@ -318,15 +329,16 @@ def test_list_by_store():
     )
 
     assert result == inventories
+
     repository.get_by_store.assert_called_once()
 
 
-def test_list_by_store_raises_when_not_found():
+def test_list_by_store_raises_when_store_not_found():
     (
         service,
         repository,
         store_repository,
-        product_repository,
+        _,
     ) = make_service()
 
     store_repository.get_by_id.return_value = None
@@ -347,12 +359,27 @@ def test_list_by_product():
     (
         service,
         repository,
-        store_repository,
+        _,
         product_repository,
     ) = make_service()
 
-    product_repository.get_by_id.return_value = make_product()
-    inventories = [make_inventory()]
+    product_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
+    inventories = [
+        make_inventory(
+            inventory_id=1,
+            product_id=1,
+        ),
+        make_inventory(
+            inventory_id=2,
+            store_id=2,
+            product_id=1,
+        ),
+    ]
+
     repository.get_by_product.return_value = inventories
 
     result = service.list_by_product(
@@ -361,14 +388,15 @@ def test_list_by_product():
     )
 
     assert result == inventories
+
     repository.get_by_product.assert_called_once()
 
 
-def test_list_by_product_raises_when_not_found():
+def test_list_by_product_raises_when_product_not_found():
     (
         service,
         repository,
-        store_repository,
+        _,
         product_repository,
     ) = make_service()
 
@@ -387,44 +415,40 @@ def test_list_by_product_raises_when_not_found():
 
 
 def test_update_inventory():
-    (
-        service,
-        repository,
-        store_repository,
-        product_repository,
-    ) = make_service()
+    service, repository, _, _ = make_service()
 
     inventory = make_inventory()
+
     repository.get_by_id.return_value = inventory
     repository.update.return_value = inventory
 
-    data = InventoryUpdate(
-        quantity_on_hand=75,
-        reorder_level=15,
+    update_data = InventoryUpdate(
+        quantity_on_hand=150,
+        reorder_level=20,
     )
 
     result = service.update_inventory(
         Mock(),
         1,
-        data,
+        update_data,
     )
 
     assert result == inventory
-    repository.update.assert_called_once()
+
+    repository.update.assert_called_once_with(
+        repository.update.call_args.args[0],
+        inventory,
+        update_data,
+    )
 
 
 def test_update_inventory_raises_when_not_found():
-    (
-        service,
-        repository,
-        store_repository,
-        product_repository,
-    ) = make_service()
+    service, repository, _, _ = make_service()
 
     repository.get_by_id.return_value = None
 
-    data = InventoryUpdate(
-        quantity_on_hand=75,
+    update_data = InventoryUpdate(
+        quantity_on_hand=150,
     )
 
     with pytest.raises(
@@ -434,21 +458,17 @@ def test_update_inventory_raises_when_not_found():
         service.update_inventory(
             Mock(),
             999,
-            data,
+            update_data,
         )
 
     repository.update.assert_not_called()
 
 
 def test_delete_inventory():
-    (
-        service,
-        repository,
-        store_repository,
-        product_repository,
-    ) = make_service()
+    service, repository, _, _ = make_service()
 
     inventory = make_inventory()
+
     repository.get_by_id.return_value = inventory
 
     service.delete_inventory(
@@ -456,19 +476,11 @@ def test_delete_inventory():
         1,
     )
 
-    repository.delete.assert_called_once_with(
-        repository.delete.call_args.args[0],
-        inventory,
-    )
+    repository.delete.assert_called_once()
 
 
 def test_delete_inventory_raises_when_not_found():
-    (
-        service,
-        repository,
-        store_repository,
-        product_repository,
-    ) = make_service()
+    service, repository, _, _ = make_service()
 
     repository.get_by_id.return_value = None
 

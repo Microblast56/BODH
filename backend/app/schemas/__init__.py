@@ -45,8 +45,10 @@ from app.schemas.product_supplier import (
 )
 from app.schemas.inventory import (
     InventoryCreate,
-    InventoryUpdate,
     InventoryResponse,
+    InventoryUpdate,
+    StockInCreate,
+    StockOutCreate,
 )
 from app.schemas.stock_movement import (
     StockMovementCreate,

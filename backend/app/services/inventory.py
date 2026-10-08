@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
@@ -6,11 +8,19 @@ from app.core.exceptions import (
 )
 from app.models import Inventory
 from app.repositories import (
+    EmployeeRepository,
     InventoryRepository,
     ProductRepository,
+    StockMovementRepository,
     StoreRepository,
 )
-from app.schemas import InventoryCreate, InventoryUpdate
+from app.schemas import (
+    InventoryCreate,
+    InventoryUpdate,
+    StockInCreate,
+    StockMovementCreate,
+    StockOutCreate,
+)
 
 
 class InventoryService:
@@ -19,6 +29,8 @@ class InventoryService:
         repository: InventoryRepository | None = None,
         store_repository: StoreRepository | None = None,
         product_repository: ProductRepository | None = None,
+        stock_movement_repository: StockMovementRepository | None = None,
+        employee_repository: EmployeeRepository | None = None,
     ) -> None:
         self.repository = repository or InventoryRepository()
         self.store_repository = (
@@ -27,6 +39,17 @@ class InventoryService:
         self.product_repository = (
             product_repository or ProductRepository()
         )
+        self.stock_movement_repository = (
+            stock_movement_repository
+            or StockMovementRepository()
+        )
+        self.employee_repository = (
+            employee_repository or EmployeeRepository()
+        )
+
+    # ------------------------------------------------------------------
+    # Standard inventory operations
+    # ------------------------------------------------------------------
 
     def create_inventory(
         self,
@@ -171,3 +194,142 @@ class InventoryService:
             db,
             inventory,
         )
+
+    # ------------------------------------------------------------------
+    # Stock-in
+    # ------------------------------------------------------------------
+
+    def stock_in(
+        self,
+        db: Session,
+        inventory_id: int,
+        stock_data: StockInCreate,
+    ) -> Inventory:
+        quantity = stock_data.quantity
+
+        if quantity <= 0:
+            raise ValueError(
+                "Stock-in quantity must be greater than zero."
+            )
+
+        inventory = self.repository.get_by_id_for_update(
+            db,
+            inventory_id,
+        )
+
+        if inventory is None:
+            raise ResourceNotFoundError(
+                "Inventory not found."
+            )
+
+        if stock_data.employee_id is not None:
+            employee = self.employee_repository.get_by_id(
+                db,
+                stock_data.employee_id,
+            )
+
+            if employee is None:
+                raise ResourceNotFoundError(
+                    "Employee not found."
+                )
+
+        # The repository performs the actual quantity mutation.
+        self.repository.adjust_quantity(
+            db,
+            inventory,
+            quantity,
+        )
+
+        inventory.last_restocked_at = datetime.now(
+            timezone.utc
+        )
+
+        movement_data = StockMovementCreate(
+            inventory_id=inventory.id,
+            employee_id=stock_data.employee_id,
+            movement_type="stock_in",
+            quantity_change=quantity,
+            reference_type=stock_data.reference_type,
+            reference_id=stock_data.reference_id,
+            notes=stock_data.notes,
+        )
+
+        self.stock_movement_repository.create_pending(
+            db,
+            movement_data,
+        )
+
+        db.commit()
+        db.refresh(inventory)
+
+        return inventory
+
+    # ------------------------------------------------------------------
+    # Stock-out
+    # ------------------------------------------------------------------
+
+    def stock_out(
+        self,
+        db: Session,
+        inventory_id: int,
+        stock_data: StockOutCreate,
+    ) -> Inventory:
+        quantity = stock_data.quantity
+
+        if quantity <= 0:
+            raise ValueError(
+                "Stock-out quantity must be greater than zero."
+            )
+
+        inventory = self.repository.get_by_id_for_update(
+            db,
+            inventory_id,
+        )
+
+        if inventory is None:
+            raise ResourceNotFoundError(
+                "Inventory not found."
+            )
+
+        if inventory.quantity_on_hand < quantity:
+            raise ResourceConflictError(
+                "Insufficient stock."
+            )
+
+        if stock_data.employee_id is not None:
+            employee = self.employee_repository.get_by_id(
+                db,
+                stock_data.employee_id,
+            )
+
+            if employee is None:
+                raise ResourceNotFoundError(
+                    "Employee not found."
+                )
+
+        # The repository performs the actual quantity mutation.
+        self.repository.adjust_quantity(
+            db,
+            inventory,
+            -quantity,
+        )
+
+        movement_data = StockMovementCreate(
+            inventory_id=inventory.id,
+            employee_id=stock_data.employee_id,
+            movement_type="stock_out",
+            quantity_change=-quantity,
+            reference_type=stock_data.reference_type,
+            reference_id=stock_data.reference_id,
+            notes=stock_data.notes,
+        )
+
+        self.stock_movement_repository.create_pending(
+            db,
+            movement_data,
+        )
+
+        db.commit()
+        db.refresh(inventory)
+
+        return inventory

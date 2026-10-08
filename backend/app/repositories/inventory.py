@@ -111,3 +111,28 @@ class InventoryRepository:
     ) -> None:
         db.delete(inventory)
         db.commit()
+
+    def get_by_id_for_update(
+        self,
+        db: Session,
+        inventory_id: int,
+    ) -> Inventory | None:
+        statement = (
+            select(Inventory)
+            .where(Inventory.id == inventory_id)
+            .with_for_update()
+        )
+
+        return db.scalar(statement)
+
+    def adjust_quantity(
+        self,
+        db: Session,
+        inventory: Inventory,
+        quantity_change: int,
+    ) -> Inventory:
+        inventory.quantity_on_hand += quantity_change
+
+        db.flush()
+
+        return inventory

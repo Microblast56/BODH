@@ -10,6 +10,8 @@ from app.schemas import (
     InventoryCreate,
     InventoryResponse,
     InventoryUpdate,
+    StockInCreate,
+    StockOutCreate,
 )
 from app.services import InventoryService
 
@@ -164,3 +166,57 @@ def delete_inventory(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+
+@router.post(
+    "/{inventory_id}/stock-in",
+    response_model=InventoryResponse,
+    status_code=status.HTTP_200_OK,
+)
+def stock_in(
+    inventory_id: int,
+    stock_data: StockInCreate,
+    db: Session = Depends(get_db),
+):
+    try:
+        return service.stock_in(
+            db,
+            inventory_id,
+            stock_data,
+        )
+
+    except ResourceNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
+
+
+@router.post(
+    "/{inventory_id}/stock-out",
+    response_model=InventoryResponse,
+    status_code=status.HTTP_200_OK,
+)
+def stock_out(
+    inventory_id: int,
+    stock_data: StockOutCreate,
+    db: Session = Depends(get_db),
+):
+    
+    try:
+        return service.stock_out(
+            db,
+            inventory_id,
+            stock_data,
+        )
+
+    except ResourceNotFoundError as exc:
+        raise HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail=str(exc),
+) from exc
+
+    except ResourceConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
