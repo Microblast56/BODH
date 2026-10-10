@@ -4,6 +4,7 @@ from app.core.exceptions import (
 )
 from app.models import Category, Retailer
 from app.schemas import CategoryCreate, CategoryUpdate
+from app.services.category import CategoryService
 
 
 def create_retailer(db):
@@ -307,3 +308,36 @@ def test_delete_category_soft_deletes_category(db):
     )
 
     assert category.is_active is False
+
+
+def test_create_category_allows_reusing_name_after_soft_delete(db):
+    retailer = create_retailer(db)
+    service = CategoryService()
+
+    original = service.create_category(
+        db,
+        CategoryCreate(
+            retailer_id=retailer.id,
+            name="Beverages",
+        ),
+    )
+
+    original_id = original.id
+
+    service.delete_category(db, original_id)
+
+    replacement = service.create_category(
+        db,
+        CategoryCreate(
+            retailer_id=retailer.id,
+            name="Beverages",
+        ),
+    )
+
+    assert replacement.id != original_id
+    assert replacement.retailer_id == retailer.id
+    assert replacement.name == "Beverages"
+    assert replacement.is_active is True
+
+    db.refresh(original)
+    assert original.is_active is False

@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -9,10 +9,12 @@ class Category(Base, TimestampMixin, ActiveMixin):
     __tablename__ = "categories"
 
     __table_args__ = (
-        UniqueConstraint(
+        Index(
+            "uq_categories_retailer_name",
             "retailer_id",
             "name",
-            name="uq_categories_retailer_name",
+            unique=True,
+            postgresql_where=text("is_active IS TRUE"),
         ),
     )
 
