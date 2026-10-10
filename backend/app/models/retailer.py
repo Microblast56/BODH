@@ -8,7 +8,10 @@ from app.db.mixins import ActiveMixin, TimestampMixin
 class Retailer(Base, TimestampMixin, ActiveMixin):
     __tablename__ = "retailers"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        index=True,
+    )
 
     name: Mapped[str] = mapped_column(
         String(100),
@@ -27,21 +30,25 @@ class Retailer(Base, TimestampMixin, ActiveMixin):
     )
 
     stores: Mapped[list["Store"]] = relationship(
-    back_populates="retailer",
+        back_populates="retailer",
     )
 
     employees: Mapped[list["Employee"]] = relationship(
-    back_populates="retailer",
+        back_populates="retailer",
     )
 
     categories: Mapped[list["Category"]] = relationship(
-    back_populates="retailer",
+        back_populates="retailer",
     )
 
     products: Mapped[list["Product"]] = relationship(
-    back_populates="retailer",
+        back_populates="retailer",
     )
 
     suppliers: Mapped[list["Supplier"]] = relationship(
-    back_populates="retailer",
+        back_populates="retailer",
+    )
+
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="retailer",
     )

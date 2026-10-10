@@ -86,6 +86,24 @@ class InventoryRepository:
 
         return list(db.scalars(statement).all())
 
+    def get_by_store_and_product_for_update(
+        self,
+        db: Session,
+        store_id: int,
+        product_id: int,
+    ) -> Inventory | None:
+        """Retrieve and lock a store's inventory row for a sale."""
+        statement = (
+            select(Inventory)
+            .where(
+                Inventory.store_id == store_id,
+                Inventory.product_id == product_id,
+            )
+            .with_for_update()
+        )
+        return db.scalar(statement)
+
+
     def update(
         self,
         db: Session,

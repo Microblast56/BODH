@@ -1,3 +1,4 @@
+
 from app.services.retailer import RetailerService
 from app.services.store import StoreService
 from app.services.employee import EmployeeService
@@ -9,6 +10,7 @@ from app.services.supplier import SupplierService
 from app.services.product_supplier import ProductSupplierService
 from app.services.inventory import InventoryService
 from app.services.stock_movement import StockMovementService
+from app.services.transaction import TransactionService
 
 __all__ = [
     "RetailerService",
@@ -22,4 +24,5 @@ __all__ = [
     "ProductSupplierService",
     "InventoryService",
     "StockMovementService",
+    "TransactionService",
 ]

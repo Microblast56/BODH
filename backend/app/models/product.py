@@ -85,9 +85,13 @@ class Product(Base, TimestampMixin, ActiveMixin):
     )
 
     supplier_links: Mapped[list["ProductSupplier"]] = relationship(
-    back_populates="product",
+        back_populates="product",
     )
 
     inventories: Mapped[list["Inventory"]] = relationship(
-    back_populates="product",
+        back_populates="product",
+    )
+
+    transaction_items: Mapped[list["TransactionItem"]] = relationship(
+        back_populates="product",
     )

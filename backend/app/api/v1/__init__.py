@@ -11,6 +11,7 @@ from app.api.v1.suppliers import router as suppliers_router
 from app.api.v1.product_suppliers import router as product_suppliers_router
 from app.api.v1.inventories import router as inventories_router
 from app.api.v1.stock_movements import router as stock_movements_router
+from app.api.v1.transactions import router as transactions_router
 
 
 api_router = APIRouter()
@@ -28,5 +29,6 @@ for router in (
     product_suppliers_router,
     inventories_router,
     stock_movements_router,
+    transactions_router,
 ):
     api_router.include_router(router)

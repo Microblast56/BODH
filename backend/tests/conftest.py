@@ -59,11 +59,14 @@ def db() -> Session:
 
     transaction = connection.begin()
 
+
     session = Session(
         bind=connection,
         autoflush=False,
         autocommit=False,
+        join_transaction_mode="create_savepoint",
     )
+
 
     try:
         yield session

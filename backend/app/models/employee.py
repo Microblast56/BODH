@@ -62,5 +62,9 @@ class Employee(Base, TimestampMixin, ActiveMixin):
     )
 
     stock_movements: Mapped[list["StockMovement"]] = relationship(
-    back_populates="employee",
+        back_populates="employee",
+    )
+
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="employee",
     )

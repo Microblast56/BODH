@@ -18,6 +18,8 @@ from app.models import (
     StockMovement,
     Store,
     Supplier,
+    Transaction,
+    TransactionItem,
 )
 
 config = context.config
