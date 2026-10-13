@@ -1,16 +1,16 @@
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ResourceNotFoundError
+from app.core.exceptions import (
+    ResourceConflictError,
+    ResourceNotFoundError,
+)
 from app.models import StockMovement
 from app.repositories import (
     EmployeeRepository,
     InventoryRepository,
     StockMovementRepository,
 )
-from app.schemas import (
-    StockMovementCreate,
-    StockMovementUpdate,
-)
+from app.schemas import StockMovementCreate, StockMovementUpdate
 
 
 class StockMovementService:
@@ -33,30 +33,9 @@ class StockMovementService:
         db: Session,
         movement_data: StockMovementCreate,
     ) -> StockMovement:
-        inventory = self.inventory_repository.get_by_id(
-            db,
-            movement_data.inventory_id,
-        )
-
-        if inventory is None:
-            raise ResourceNotFoundError(
-                "Inventory not found."
-            )
-
-        if movement_data.employee_id is not None:
-            employee = self.employee_repository.get_by_id(
-                db,
-                movement_data.employee_id,
-            )
-
-            if employee is None:
-                raise ResourceNotFoundError(
-                    "Employee not found."
-                )
-
-        return self.repository.create(
-            db,
-            movement_data,
+        raise ResourceConflictError(
+            "Stock movements must be created through an inventory "
+            "or transaction operation."
         )
 
     def get_stock_movement(
@@ -134,29 +113,8 @@ class StockMovementService:
         movement_id: int,
         movement_data: StockMovementUpdate,
     ) -> StockMovement:
-        movement = self.get_stock_movement(
-            db,
-            movement_id,
-        )
-
-        if (
-            "employee_id" in movement_data.model_fields_set
-            and movement_data.employee_id is not None
-        ):
-            employee = self.employee_repository.get_by_id(
-                db,
-                movement_data.employee_id,
-            )
-
-            if employee is None:
-                raise ResourceNotFoundError(
-                    "Employee not found."
-                )
-
-        return self.repository.update(
-            db,
-            movement,
-            movement_data,
+        raise ResourceConflictError(
+            "Stock movement history cannot be modified."
         )
 
     def delete_stock_movement(
@@ -164,12 +122,6 @@ class StockMovementService:
         db: Session,
         movement_id: int,
     ) -> None:
-        movement = self.get_stock_movement(
-            db,
-            movement_id,
-        )
-
-        self.repository.delete(
-            db,
-            movement,
+        raise ResourceConflictError(
+            "Stock movement history cannot be deleted."
         )

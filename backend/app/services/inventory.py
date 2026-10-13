@@ -89,10 +89,35 @@ class InventoryService:
                 "Inventory already exists for this store and product."
             )
 
-        return self.repository.create(
-            db,
-            inventory_data,
-        )
+        try:
+            inventory = self.repository.create_pending(
+                db,
+                inventory_data,
+            )
+
+            opening_quantity = inventory.quantity_on_hand
+
+            if opening_quantity > 0:
+                movement_data = StockMovementCreate(
+                    inventory_id=inventory.id,
+                    movement_type="opening_balance",
+                    quantity_change=opening_quantity,
+                    notes="Opening inventory balance",
+                )
+
+                self.stock_movement_repository.create_pending(
+                    db,
+                    movement_data,
+                )
+
+            db.commit()
+            db.refresh(inventory)
+
+            return inventory
+
+        except Exception:
+            db.rollback()
+            raise
 
     def get_inventory(
         self,
@@ -190,11 +215,22 @@ class InventoryService:
             inventory_id,
         )
 
+        movements = (
+            self.stock_movement_repository.get_by_inventory(
+                db,
+                inventory_id,
+            )
+        )
+
+        if movements:
+            raise ResourceConflictError(
+                "Cannot delete inventory with stock movement history."
+            )
+
         self.repository.delete(
             db,
             inventory,
         )
-
     # ------------------------------------------------------------------
     # Stock-in
     # ------------------------------------------------------------------
@@ -234,35 +270,41 @@ class InventoryService:
                 )
 
         # The repository performs the actual quantity mutation.
-        self.repository.adjust_quantity(
-            db,
-            inventory,
-            quantity,
-        )
+        try:
+            # Update quantity and record the corresponding movement.
+            self.repository.adjust_quantity(
+                db,
+                inventory,
+                quantity,
+            )
 
-        inventory.last_restocked_at = datetime.now(
-            timezone.utc
-        )
+            inventory.last_restocked_at = datetime.now(
+                timezone.utc
+            )
 
-        movement_data = StockMovementCreate(
-            inventory_id=inventory.id,
-            employee_id=stock_data.employee_id,
-            movement_type="stock_in",
-            quantity_change=quantity,
-            reference_type=stock_data.reference_type,
-            reference_id=stock_data.reference_id,
-            notes=stock_data.notes,
-        )
+            movement_data = StockMovementCreate(
+                inventory_id=inventory.id,
+                employee_id=stock_data.employee_id,
+                movement_type="stock_in",
+                quantity_change=quantity,
+                reference_type=stock_data.reference_type,
+                reference_id=stock_data.reference_id,
+                notes=stock_data.notes,
+            )
 
-        self.stock_movement_repository.create_pending(
-            db,
-            movement_data,
-        )
+            self.stock_movement_repository.create_pending(
+                db,
+                movement_data,
+            )
 
-        db.commit()
-        db.refresh(inventory)
+            db.commit()
+            db.refresh(inventory)
 
-        return inventory
+            return inventory
+
+        except Exception:
+            db.rollback()
+            raise
 
     # ------------------------------------------------------------------
     # Stock-out
@@ -308,28 +350,34 @@ class InventoryService:
                 )
 
         # The repository performs the actual quantity mutation.
-        self.repository.adjust_quantity(
-            db,
-            inventory,
-            -quantity,
-        )
+        try:
+            # Update quantity and record the corresponding movement.
+            self.repository.adjust_quantity(
+                db,
+                inventory,
+                -quantity,
+            )
 
-        movement_data = StockMovementCreate(
-            inventory_id=inventory.id,
-            employee_id=stock_data.employee_id,
-            movement_type="stock_out",
-            quantity_change=-quantity,
-            reference_type=stock_data.reference_type,
-            reference_id=stock_data.reference_id,
-            notes=stock_data.notes,
-        )
+            movement_data = StockMovementCreate(
+                inventory_id=inventory.id,
+                employee_id=stock_data.employee_id,
+                movement_type="stock_out",
+                quantity_change=-quantity,
+                reference_type=stock_data.reference_type,
+                reference_id=stock_data.reference_id,
+                notes=stock_data.notes,
+            )
 
-        self.stock_movement_repository.create_pending(
-            db,
-            movement_data,
-        )
+            self.stock_movement_repository.create_pending(
+                db,
+                movement_data,
+            )
 
-        db.commit()
-        db.refresh(inventory)
+            db.commit()
+            db.refresh(inventory)
 
-        return inventory
+            return inventory
+
+        except Exception:
+            db.rollback()
+            raise

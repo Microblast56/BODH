@@ -376,7 +376,6 @@ def test_update_inventory():
     response = client.patch(
         f"/api/v1/inventories/{inventory['id']}",
         json={
-            "quantity_on_hand": 250,
             "reorder_level": 25,
             "reorder_quantity": 100,
         },
@@ -387,7 +386,7 @@ def test_update_inventory():
     data = response.json()
 
     assert data["id"] == inventory["id"]
-    assert data["quantity_on_hand"] == 250
+    assert data["quantity_on_hand"] == 100
     assert data["reorder_level"] == 25
     assert data["reorder_quantity"] == 100
 
@@ -396,7 +395,7 @@ def test_update_inventory_returns_404_when_not_found():
     response = client.patch(
         "/api/v1/inventories/999999",
         json={
-            "quantity_on_hand": 100,
+            "reorder_level": 20,
         },
     )
 
@@ -412,6 +411,7 @@ def test_delete_inventory():
     inventory = create_inventory(
         store["id"],
         product["id"],
+        quantity=0,
     )
 
     response = client.delete(
@@ -427,6 +427,31 @@ def test_delete_inventory():
     assert get_response.status_code == 404
 
 
+def test_delete_inventory_rejects_inventory_with_movement_history():
+    retailer = create_retailer()
+    store = create_store(retailer["id"])
+    product = create_product(retailer["id"])
+
+    inventory = create_inventory(
+        store["id"],
+        product["id"],
+    )
+
+    response = client.delete(
+        f"/api/v1/inventories/{inventory['id']}"
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "Cannot delete inventory with stock movement history."
+    )
+
+    get_response = client.get(
+        f"/api/v1/inventories/{inventory['id']}"
+    )
+
+    assert get_response.status_code == 200
+
 def test_delete_inventory_returns_404_when_not_found():
     response = client.delete(
         "/api/v1/inventories/999999"
@@ -434,3 +459,83 @@ def test_delete_inventory_returns_404_when_not_found():
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Inventory not found."
+
+def test_create_inventory_records_opening_stock_movement():
+    retailer = create_retailer()
+    store = create_store(retailer["id"])
+    product = create_product(retailer["id"])
+
+    inventory = create_inventory(
+        store["id"],
+        product["id"],
+        quantity=100,
+    )
+
+    response = client.get(
+        f"/api/v1/stock-movements/inventory/{inventory['id']}"
+    )
+
+    assert response.status_code == 200
+
+    movements = response.json()
+
+    opening_movements = [
+        movement
+        for movement in movements
+        if movement["movement_type"] == "opening_balance"
+    ]
+
+    assert len(opening_movements) == 1
+    assert opening_movements[0]["quantity_change"] == 100
+
+
+def test_delete_inventory_without_movement_history():
+    retailer = create_retailer()
+    store = create_store(retailer["id"])
+    product = create_product(retailer["id"])
+
+    inventory = create_inventory(
+        store["id"],
+        product["id"],
+        quantity=0,
+    )
+
+    response = client.delete(
+        f"/api/v1/inventories/{inventory['id']}"
+    )
+
+    assert response.status_code == 204
+
+    get_response = client.get(
+        f"/api/v1/inventories/{inventory['id']}"
+    )
+
+    assert get_response.status_code == 404
+
+
+def test_update_inventory_rejects_direct_quantity_change():
+    retailer = create_retailer()
+    store = create_store(retailer["id"])
+    product = create_product(retailer["id"])
+
+    inventory = create_inventory(
+        store["id"],
+        product["id"],
+        quantity=100,
+    )
+
+    response = client.patch(
+        f"/api/v1/inventories/{inventory['id']}",
+        json={
+            "quantity_on_hand": 250,
+        },
+    )
+
+    assert response.status_code == 422
+
+    get_response = client.get(
+        f"/api/v1/inventories/{inventory['id']}"
+    )
+
+    assert get_response.status_code == 200
+    assert get_response.json()["quantity_on_hand"] == 100

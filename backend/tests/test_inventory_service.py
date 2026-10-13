@@ -36,11 +36,15 @@ def make_service():
     repository = Mock()
     store_repository = Mock()
     product_repository = Mock()
+    stock_movement_repository = Mock()
+    employee_repository = Mock()
 
     service = InventoryService(
         repository=repository,
         store_repository=store_repository,
         product_repository=product_repository,
+        stock_movement_repository=stock_movement_repository,
+        employee_repository=employee_repository,
     )
 
     return (
@@ -72,8 +76,7 @@ def test_create_inventory():
     repository.get_by_store_and_product.return_value = None
 
     inventory = make_inventory()
-
-    repository.create.return_value = inventory
+    repository.create_pending.return_value = inventory
 
     inventory_data = InventoryCreate(
         store_id=1,
@@ -83,18 +86,32 @@ def test_create_inventory():
         reorder_quantity=50,
     )
 
+    db = Mock()
+
     result = service.create_inventory(
-        Mock(),
+        db,
         inventory_data,
     )
 
     assert result == inventory
 
-    repository.create.assert_called_once_with(
-        repository.create.call_args.args[0],
+    repository.create_pending.assert_called_once_with(
+        db,
         inventory_data,
     )
 
+    service.stock_movement_repository.create_pending.assert_called_once()
+
+    movement_data = (
+        service.stock_movement_repository.create_pending.call_args.args[1]
+    )
+
+    assert movement_data.inventory_id == inventory.id
+    assert movement_data.movement_type == "opening_balance"
+    assert movement_data.quantity_change == 100
+
+    db.commit.assert_called_once()
+    db.refresh.assert_called_once_with(inventory)
 
 def test_create_inventory_raises_when_store_not_found():
     (
@@ -121,7 +138,7 @@ def test_create_inventory_raises_when_store_not_found():
         )
 
     product_repository.get_by_id.assert_not_called()
-    repository.create.assert_not_called()
+    repository.create_pending.assert_not_called()
 
 
 def test_create_inventory_raises_when_product_not_found():
@@ -220,7 +237,7 @@ def test_create_inventory_allows_same_product_for_different_store():
         product_id=1,
     )
 
-    repository.create.return_value = inventory
+    repository.create_pending.return_value = inventory
 
     inventory_data = InventoryCreate(
         store_id=2,
@@ -233,7 +250,7 @@ def test_create_inventory_allows_same_product_for_different_store():
     )
 
     assert result == inventory
-    repository.create.assert_called_once()
+    repository.create_pending.assert_called_once()
 
 
 def test_get_inventory():
@@ -423,8 +440,8 @@ def test_update_inventory():
     repository.update.return_value = inventory
 
     update_data = InventoryUpdate(
-        quantity_on_hand=150,
         reorder_level=20,
+        reorder_quantity=75,
     )
 
     result = service.update_inventory(
@@ -441,14 +458,13 @@ def test_update_inventory():
         update_data,
     )
 
-
 def test_update_inventory_raises_when_not_found():
     service, repository, _, _ = make_service()
 
     repository.get_by_id.return_value = None
 
     update_data = InventoryUpdate(
-        quantity_on_hand=150,
+        reorder_level=20,
     )
 
     with pytest.raises(
@@ -470,6 +486,7 @@ def test_delete_inventory():
     inventory = make_inventory()
 
     repository.get_by_id.return_value = inventory
+    service.stock_movement_repository.get_by_inventory.return_value = []
 
     service.delete_inventory(
         Mock(),
@@ -477,6 +494,28 @@ def test_delete_inventory():
     )
 
     repository.delete.assert_called_once()
+
+
+def test_delete_inventory_rejects_movement_history():
+    service, repository, _, _ = make_service()
+
+    inventory = make_inventory()
+
+    repository.get_by_id.return_value = inventory
+    service.stock_movement_repository.get_by_inventory.return_value = [
+        Mock()
+    ]
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="Cannot delete inventory with stock movement history.",
+    ):
+        service.delete_inventory(
+            Mock(),
+            1,
+        )
+
+    repository.delete.assert_not_called()
 
 
 def test_delete_inventory_raises_when_not_found():
@@ -494,3 +533,11 @@ def test_delete_inventory_raises_when_not_found():
         )
 
     repository.delete.assert_not_called()
+
+
+def test_inventory_update_rejects_quantity_on_hand():
+    with pytest.raises(
+        ValueError,
+        match="quantity_on_hand",
+    ):
+        InventoryUpdate(quantity_on_hand=150)

@@ -263,3 +263,78 @@ def test_stock_in_validates_employee():
 
     repository.adjust_quantity.assert_not_called()
     stock_movement_repository.create_pending.assert_not_called()
+
+def test_stock_in_rolls_back_when_movement_creation_fails():
+    (
+        service,
+        repository,
+        stock_movement_repository,
+        employee_repository,
+    ) = make_service()
+
+    inventory = Inventory(
+        id=1,
+        store_id=1,
+        product_id=1,
+        quantity_on_hand=100,
+        reorder_level=10,
+        reorder_quantity=50,
+    )
+
+    repository.get_by_id_for_update.return_value = inventory
+    stock_movement_repository.create_pending.side_effect = (
+        RuntimeError("Movement creation failed.")
+    )
+
+    db = Mock()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Movement creation failed.",
+    ):
+        service.stock_in(
+            db,
+            1,
+            StockInCreate(quantity=25),
+        )
+
+    db.rollback.assert_called_once()
+    db.commit.assert_not_called()
+
+
+def test_stock_out_rolls_back_when_movement_creation_fails():
+    (
+        service,
+        repository,
+        stock_movement_repository,
+        employee_repository,
+    ) = make_service()
+
+    inventory = Inventory(
+        id=1,
+        store_id=1,
+        product_id=1,
+        quantity_on_hand=100,
+        reorder_level=10,
+        reorder_quantity=50,
+    )
+
+    repository.get_by_id_for_update.return_value = inventory
+    stock_movement_repository.create_pending.side_effect = (
+        RuntimeError("Movement creation failed.")
+    )
+
+    db = Mock()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Movement creation failed.",
+    ):
+        service.stock_out(
+            db,
+            1,
+            StockOutCreate(quantity=25),
+        )
+
+    db.rollback.assert_called_once()
+    db.commit.assert_not_called()

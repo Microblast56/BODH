@@ -21,6 +21,21 @@ class InventoryRepository:
 
         return inventory
 
+    def create_pending(
+        self,
+        db: Session,
+        inventory_data: InventoryCreate,
+    ) -> Inventory:
+        """Create inventory without committing the transaction."""
+        inventory = Inventory(
+            **inventory_data.model_dump()
+        )
+        db.add(inventory)
+        db.flush()
+        db.refresh(inventory)
+
+        return inventory
+
     def get_by_id(
         self,
         db: Session,

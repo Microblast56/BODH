@@ -1,3 +1,4 @@
+
 from app.models import (
     Employee,
     Inventory,
@@ -9,14 +10,10 @@ from app.models import (
 
 
 def create_retailer(db):
-    retailer = Retailer(
-        name="Test Retailer",
-    )
-
+    retailer = Retailer(name="Test Retailer")
     db.add(retailer)
     db.commit()
     db.refresh(retailer)
-
     return retailer
 
 
@@ -31,11 +28,9 @@ def create_store(db, retailer_id):
         postal_code="226001",
         country="India",
     )
-
     db.add(store)
     db.commit()
     db.refresh(store)
-
     return store
 
 
@@ -48,11 +43,9 @@ def create_product(db, retailer_id):
         selling_price=150,
         unit="piece",
     )
-
     db.add(product)
     db.commit()
     db.refresh(product)
-
     return product
 
 
@@ -67,11 +60,9 @@ def create_inventory(db):
         quantity_on_hand=100,
         reorder_level=10,
     )
-
     db.add(inventory)
     db.commit()
     db.refresh(inventory)
-
     return inventory
 
 
@@ -85,11 +76,9 @@ def create_employee(db):
         name="John",
         role="Manager",
     )
-
     db.add(employee)
     db.commit()
     db.refresh(employee)
-
     return employee
 
 
@@ -101,41 +90,30 @@ def create_stock_movement(db, inventory_id, employee_id=None):
         quantity_change=-5,
         notes="Test movement",
     )
-
     db.add(movement)
     db.commit()
     db.refresh(movement)
-
     return movement
 
 
-def test_create_stock_movement_api(client, db):
+def test_create_stock_movement_api_is_not_allowed(client, db):
     inventory = create_inventory(db)
-    employee = create_employee(db)
 
     response = client.post(
         "/api/v1/stock-movements",
         json={
             "inventory_id": inventory.id,
-            "employee_id": employee.id,
             "movement_type": "sale",
             "quantity_change": -5,
-            "notes": "Test sale",
         },
     )
 
-    assert response.status_code == 201
-
-    data = response.json()
-
-    assert data["inventory_id"] == inventory.id
-    assert data["employee_id"] == employee.id
-    assert data["movement_type"] == "sale"
-    assert data["quantity_change"] == -5
-    assert data["notes"] == "Test sale"
+    assert response.status_code == 405
 
 
-def test_create_stock_movement_api_without_employee(client, db):
+def test_create_stock_movement_api_without_employee_is_not_allowed(
+    client, db
+):
     inventory = create_inventory(db)
 
     response = client.post(
@@ -147,14 +125,7 @@ def test_create_stock_movement_api_without_employee(client, db):
         },
     )
 
-    assert response.status_code == 201
-
-    data = response.json()
-
-    assert data["inventory_id"] == inventory.id
-    assert data["employee_id"] is None
-    assert data["movement_type"] == "adjustment"
-    assert data["quantity_change"] == 10
+    assert response.status_code == 405
 
 
 def test_create_stock_movement_api_rejects_missing_inventory(client):
@@ -167,8 +138,7 @@ def test_create_stock_movement_api_rejects_missing_inventory(client):
         },
     )
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Inventory not found."
+    assert response.status_code == 405
 
 
 def test_create_stock_movement_api_rejects_missing_employee(client, db):
@@ -184,17 +154,12 @@ def test_create_stock_movement_api_rejects_missing_employee(client, db):
         },
     )
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Employee not found."
+    assert response.status_code == 405
 
 
 def test_get_stock_movement_api(client, db):
     inventory = create_inventory(db)
-
-    movement = create_stock_movement(
-        db,
-        inventory.id,
-    )
+    movement = create_stock_movement(db, inventory.id)
 
     response = client.get(
         f"/api/v1/stock-movements/{movement.id}"
@@ -203,7 +168,6 @@ def test_get_stock_movement_api(client, db):
     assert response.status_code == 200
 
     data = response.json()
-
     assert data["id"] == movement.id
     assert data["inventory_id"] == inventory.id
     assert data["movement_type"] == "sale"
@@ -211,9 +175,7 @@ def test_get_stock_movement_api(client, db):
 
 
 def test_get_stock_movement_api_returns_404_when_not_found(client):
-    response = client.get(
-        "/api/v1/stock-movements/999999"
-    )
+    response = client.get("/api/v1/stock-movements/999999")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Stock movement not found."
@@ -221,30 +183,20 @@ def test_get_stock_movement_api_returns_404_when_not_found(client):
 
 def test_list_stock_movements_api(client, db):
     inventory = create_inventory(db)
-
-    create_stock_movement(
-        db,
-        inventory.id,
-    )
+    create_stock_movement(db, inventory.id)
 
     movement = StockMovement(
         inventory_id=inventory.id,
         movement_type="restock",
         quantity_change=20,
     )
-
     db.add(movement)
     db.commit()
 
-    response = client.get(
-        "/api/v1/stock-movements"
-    )
+    response = client.get("/api/v1/stock-movements")
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert len(data) == 2
+    assert len(response.json()) == 2
 
 
 def test_list_stock_movements_api_supports_pagination(client, db):
@@ -258,7 +210,6 @@ def test_list_stock_movements_api_supports_pagination(client, db):
                 quantity_change=quantity,
             )
         )
-
     db.commit()
 
     response = client.get(
@@ -266,28 +217,19 @@ def test_list_stock_movements_api_supports_pagination(client, db):
     )
 
     assert response.status_code == 200
-
-    data = response.json()
-
-    assert len(data) == 1
+    assert len(response.json()) == 1
 
 
 def test_list_stock_movements_api_by_inventory(client, db):
     inventory = create_inventory(db)
-
-    create_stock_movement(
-        db,
-        inventory.id,
-    )
+    create_stock_movement(db, inventory.id)
 
     response = client.get(
         f"/api/v1/stock-movements/inventory/{inventory.id}"
     )
 
     assert response.status_code == 200
-
     data = response.json()
-
     assert len(data) == 1
     assert data[0]["inventory_id"] == inventory.id
 
@@ -306,21 +248,14 @@ def test_list_stock_movements_api_by_inventory_returns_404_when_not_found(
 def test_list_stock_movements_api_by_employee(client, db):
     inventory = create_inventory(db)
     employee = create_employee(db)
-
-    create_stock_movement(
-        db,
-        inventory.id,
-        employee.id,
-    )
+    create_stock_movement(db, inventory.id, employee.id)
 
     response = client.get(
         f"/api/v1/stock-movements/employee/{employee.id}"
     )
 
     assert response.status_code == 200
-
     data = response.json()
-
     assert len(data) == 1
     assert data[0]["employee_id"] == employee.id
 
@@ -336,13 +271,9 @@ def test_list_stock_movements_api_by_employee_returns_404_when_not_found(
     assert response.json()["detail"] == "Employee not found."
 
 
-def test_update_stock_movement_api(client, db):
+def test_update_stock_movement_api_is_not_allowed(client, db):
     inventory = create_inventory(db)
-
-    movement = create_stock_movement(
-        db,
-        inventory.id,
-    )
+    movement = create_stock_movement(db, inventory.id)
 
     response = client.patch(
         f"/api/v1/stock-movements/{movement.id}",
@@ -352,70 +283,50 @@ def test_update_stock_movement_api(client, db):
         },
     )
 
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["movement_type"] == "return"
-    assert data["quantity_change"] == 5
+    assert response.status_code == 405
 
 
-def test_update_stock_movement_api_returns_404_when_not_found(client):
+def test_update_stock_movement_api_returns_405_when_not_found(client):
     response = client.patch(
         "/api/v1/stock-movements/999999",
-        json={
-            "movement_type": "return",
-        },
+        json={"movement_type": "return"},
     )
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Stock movement not found."
+    assert response.status_code == 405
 
 
 def test_update_stock_movement_api_rejects_missing_employee(client, db):
     inventory = create_inventory(db)
-
-    movement = create_stock_movement(
-        db,
-        inventory.id,
-    )
+    movement = create_stock_movement(db, inventory.id)
 
     response = client.patch(
         f"/api/v1/stock-movements/{movement.id}",
-        json={
-            "employee_id": 999999,
-        },
+        json={"employee_id": 999999},
     )
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Employee not found."
+    assert response.status_code == 405
 
 
-def test_delete_stock_movement_api(client, db):
+def test_delete_stock_movement_api_is_not_allowed(client, db):
     inventory = create_inventory(db)
-
-    movement = create_stock_movement(
-        db,
-        inventory.id,
-    )
+    movement = create_stock_movement(db, inventory.id)
 
     response = client.delete(
         f"/api/v1/stock-movements/{movement.id}"
     )
 
-    assert response.status_code == 204
+    assert response.status_code == 405
 
-    response = client.get(
+    # The movement must remain available in the audit history.
+    get_response = client.get(
         f"/api/v1/stock-movements/{movement.id}"
     )
+    assert get_response.status_code == 200
 
-    assert response.status_code == 404
 
-
-def test_delete_stock_movement_api_returns_404_when_not_found(client):
+def test_delete_stock_movement_api_returns_405_when_not_found(client):
     response = client.delete(
         "/api/v1/stock-movements/999999"
     )
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Stock movement not found."
+    assert response.status_code == 405

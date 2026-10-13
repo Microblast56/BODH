@@ -35,10 +35,7 @@ class InventoryCreate(InventoryBase):
 
 
 class InventoryUpdate(BaseModel):
-    quantity_on_hand: int | None = Field(
-        default=None,
-        ge=0,
-    )
+    model_config = ConfigDict(extra="forbid")
 
     reorder_level: int | None = Field(
         default=None,
@@ -50,8 +47,6 @@ class InventoryUpdate(BaseModel):
         ge=0,
     )
 
-    last_restocked_at: datetime | None = None
-
 
 class InventoryResponse(InventoryBase):
     model_config = ConfigDict(from_attributes=True)
@@ -59,6 +54,7 @@ class InventoryResponse(InventoryBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
 
 class StockAdjustmentBase(BaseModel):
     quantity: int = Field(

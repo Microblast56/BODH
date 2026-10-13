@@ -166,6 +166,12 @@ def delete_inventory(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+    except ResourceConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
 
 @router.post(
     "/{inventory_id}/stock-in",
