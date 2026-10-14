@@ -19,17 +19,14 @@ def make_inventory(
     reorder_level: int = 10,
     reorder_quantity: int = 50,
 ) -> Inventory:
-    inventory = Inventory(
+    return Inventory(
         id=inventory_id,
         store_id=store_id,
         product_id=product_id,
         quantity_on_hand=quantity_on_hand,
         reorder_level=reorder_level,
         reorder_quantity=reorder_quantity,
-        
     )
-
-    return inventory
 
 
 def make_service():
@@ -66,11 +63,13 @@ def test_create_inventory():
     store_repository.get_by_id.return_value = Mock(
         id=1,
         is_active=True,
+        retailer_id=10,
     )
 
     product_repository.get_by_id.return_value = Mock(
         id=1,
         is_active=True,
+        retailer_id=10,
     )
 
     repository.get_by_store_and_product.return_value = None
@@ -113,6 +112,7 @@ def test_create_inventory():
     db.commit.assert_called_once()
     db.refresh.assert_called_once_with(inventory)
 
+
 def test_create_inventory_raises_when_store_not_found():
     (
         service,
@@ -152,6 +152,7 @@ def test_create_inventory_raises_when_product_not_found():
     store_repository.get_by_id.return_value = Mock(
         id=1,
         is_active=True,
+        retailer_id=10,
     )
 
     product_repository.get_by_id.return_value = None
@@ -184,16 +185,16 @@ def test_create_inventory_rejects_duplicate():
     store_repository.get_by_id.return_value = Mock(
         id=1,
         is_active=True,
+        retailer_id=10,
     )
 
     product_repository.get_by_id.return_value = Mock(
         id=1,
         is_active=True,
+        retailer_id=10,
     )
 
-    repository.get_by_store_and_product.return_value = (
-        make_inventory()
-    )
+    repository.get_by_store_and_product.return_value = make_inventory()
 
     inventory_data = InventoryCreate(
         store_id=1,
@@ -223,11 +224,13 @@ def test_create_inventory_allows_same_product_for_different_store():
     store_repository.get_by_id.return_value = Mock(
         id=2,
         is_active=True,
+        retailer_id=10,
     )
 
     product_repository.get_by_id.return_value = Mock(
         id=1,
         is_active=True,
+        retailer_id=10,
     )
 
     repository.get_by_store_and_product.return_value = None
@@ -253,11 +256,49 @@ def test_create_inventory_allows_same_product_for_different_store():
     repository.create_pending.assert_called_once()
 
 
+def test_create_inventory_rejects_product_from_another_retailer():
+    (
+        service,
+        repository,
+        store_repository,
+        product_repository,
+    ) = make_service()
+
+    store_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+        retailer_id=10,
+    )
+
+    product_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+        retailer_id=20,
+    )
+
+    repository.get_by_store_and_product.return_value = None
+
+    inventory_data = InventoryCreate(
+        store_id=1,
+        product_id=1,
+    )
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="The product does not belong to the store's retailer.",
+    ):
+        service.create_inventory(
+            Mock(),
+            inventory_data,
+        )
+
+    repository.create_pending.assert_not_called()
+
+
 def test_get_inventory():
     service, repository, _, _ = make_service()
 
     inventory = make_inventory()
-
     repository.get_by_id.return_value = inventory
 
     result = service.get_inventory(
@@ -266,7 +307,6 @@ def test_get_inventory():
     )
 
     assert result == inventory
-
     repository.get_by_id.assert_called_once()
 
 
@@ -346,7 +386,6 @@ def test_list_by_store():
     )
 
     assert result == inventories
-
     repository.get_by_store.assert_called_once()
 
 
@@ -405,7 +444,6 @@ def test_list_by_product():
     )
 
     assert result == inventories
-
     repository.get_by_product.assert_called_once()
 
 
@@ -457,6 +495,7 @@ def test_update_inventory():
         inventory,
         update_data,
     )
+
 
 def test_update_inventory_raises_when_not_found():
     service, repository, _, _ = make_service()
