@@ -12,8 +12,11 @@ from app.api.v1.product_suppliers import router as product_suppliers_router
 from app.api.v1.inventories import router as inventories_router
 from app.api.v1.stock_movements import router as stock_movements_router
 from app.api.v1.transactions import router as transactions_router
-
-
+from app.api.v1.sales_reports import router as sales_reports_router
+from app.api.v1.product_performance import (
+    router as product_performance_router,
+)
+from app.api.v1.low_stock_reports import router as low_stock_reports_router
 api_router = APIRouter()
 
 
@@ -30,5 +33,8 @@ for router in (
     inventories_router,
     stock_movements_router,
     transactions_router,
+    sales_reports_router,
+    product_performance_router,
+    low_stock_reports_router,
 ):
     api_router.include_router(router)

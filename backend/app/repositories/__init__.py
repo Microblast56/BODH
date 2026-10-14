@@ -1,4 +1,4 @@
-
+from app.repositories.sales_report import SalesReportRepository
 from app.repositories.retailer import RetailerRepository
 from app.repositories.store import StoreRepository
 from app.repositories.employee import EmployeeRepository
@@ -12,6 +12,8 @@ from app.repositories.inventory import InventoryRepository
 from app.repositories.stock_movement import StockMovementRepository
 from app.repositories.transaction import TransactionRepository
 from app.repositories.transaction_item import TransactionItemRepository
+from app.repositories.product_performance import ProductPerformanceRepository
+from app.repositories.low_stock_report import LowStockReportRepository
 
 __all__ = [
     "RetailerRepository",
@@ -27,4 +29,7 @@ __all__ = [
     "StockMovementRepository",
     "TransactionRepository",
     "TransactionItemRepository",
+    "SalesReportRepository",
+    "ProductPerformanceRepository",
+    "LowStockReportRepository",
 ]

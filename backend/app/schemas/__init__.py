@@ -1,4 +1,3 @@
-
 from app.schemas.category import (
     CategoryCreate,
     CategoryResponse,
@@ -64,6 +63,15 @@ from app.schemas.transaction_item import (
     TransactionItemCreate,
     TransactionItemResponse,
 )
+from app.schemas.sales_report import SalesSummaryResponse
+from app.schemas.low_stock_report import (
+    LowStockItem,
+    LowStockReportResponse,
+)
+from app.schemas.product_performance import (
+    ProductPerformanceItem,
+    ProductPerformanceResponse,
+)
 
 __all__ = [
     "CategoryCreate",
@@ -105,4 +113,9 @@ __all__ = [
     "TransactionItemCreate",
     "TransactionItemResponse",
     "TransactionResponse",
+    "SalesSummaryResponse",
+    "LowStockItem",
+    "LowStockReportResponse",
+    "ProductPerformanceItem",
+    "ProductPerformanceResponse",
 ]
