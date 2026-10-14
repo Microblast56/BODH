@@ -251,3 +251,80 @@ def test_low_stock_report_does_not_change_inventory_quantity(client):
     quantity_after = after_response.json()["quantity_on_hand"]
 
     assert quantity_after == quantity_before == 2
+
+
+def test_low_stock_report_filters_by_retailer(client):
+    first_retailer, _, _, _ = create_inventory_setup(
+        client, quantity=2, reorder_level=5
+    )
+    second_retailer, _, _, _ = create_inventory_setup(
+        client, quantity=1, reorder_level=5
+    )
+
+    response = client.get(
+        "/api/v1/reports/low-stock",
+        params={"retailer_id": first_retailer["id"]},
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+
+    assert data["retailer_id"] == first_retailer["id"]
+    assert data["total_items"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["retailer_id"] == first_retailer["id"]
+    assert data["items"][0]["quantity_on_hand"] == 2
+    assert data["items"][0]["shortage_quantity"] == 3
+    assert data["items"][0]["retailer_id"] != second_retailer["id"]
+
+
+def test_low_stock_report_calculates_shortages_for_multiple_items(client):
+    retailer = create_retailer(client)
+    store = create_store(client, retailer["id"])
+
+    first_product = create_product(client, retailer["id"])
+    second_product = create_product(client, retailer["id"])
+
+    create_inventory(
+        client,
+        store["id"],
+        first_product["id"],
+        quantity=1,
+        reorder_level=5,
+        reorder_quantity=10,
+    )
+    create_inventory(
+        client,
+        store["id"],
+        second_product["id"],
+        quantity=4,
+        reorder_level=6,
+        reorder_quantity=12,
+    )
+
+    response = client.get(
+        "/api/v1/reports/low-stock",
+        params={"retailer_id": retailer["id"]},
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+
+    assert data["total_items"] == 2
+    assert len(data["items"]) == 2
+
+    items_by_product_id = {
+        item["product_id"]: item for item in data["items"]
+    }
+
+    first_item = items_by_product_id[first_product["id"]]
+    assert first_item["quantity_on_hand"] == 1
+    assert first_item["reorder_level"] == 5
+    assert first_item["reorder_quantity"] == 10
+    assert first_item["shortage_quantity"] == 4
+
+    second_item = items_by_product_id[second_product["id"]]
+    assert second_item["quantity_on_hand"] == 4
+    assert second_item["reorder_level"] == 6
+    assert second_item["reorder_quantity"] == 12
+    assert second_item["shortage_quantity"] == 2

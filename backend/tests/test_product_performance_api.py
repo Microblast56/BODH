@@ -1,5 +1,8 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from uuid import uuid4
+
+from app.models import Transaction, TransactionItem
 
 
 def unique_suffix():
@@ -150,3 +153,104 @@ def test_product_performance_rejects_invalid_date_range(client):
     assert response.json()["detail"] == (
         "date_from must be on or before date_to."
     )
+
+
+def test_product_performance_excludes_pending_transactions(client, db):
+    retailer = create_retailer(client)
+    store = create_store(client, retailer["id"])
+    product = create_product(client, retailer["id"])
+    create_inventory(client, store["id"], product["id"])
+
+    sale = create_sale(
+        client, retailer["id"], store["id"], product["id"], 2
+    )
+    assert sale.status_code == 201, sale.text
+
+    pending = Transaction(
+        retailer_id=retailer["id"],
+        store_id=store["id"],
+        transaction_number=f"PF-PENDING-{unique_suffix()}",
+        status="pending",
+        payment_method="cash",
+        subtotal=Decimal("100.00"),
+        tax_amount=Decimal("10.00"),
+        discount_amount=Decimal("0.00"),
+        total_amount=Decimal("110.00"),
+    )
+    db.add(pending)
+    db.flush()
+
+    db.add(
+        TransactionItem(
+            transaction_id=pending.id,
+            product_id=product["id"],
+            quantity=10,
+            unit_price=Decimal("10.00"),
+            discount_amount=Decimal("0.00"),
+            tax_amount=Decimal("10.00"),
+            line_total=Decimal("110.00"),
+        )
+    )
+    db.flush()
+
+    response = client.get(
+        "/api/v1/reports/product-performance",
+        params={"retailer_id": retailer["id"]},
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+
+    assert data["total_products"] == 1
+    item = data["products"][0]
+    assert item["product_id"] == product["id"]
+    assert item["units_sold"] == 2
+    assert item["transaction_count"] == 1
+    assert item["total_revenue"] == "22.00"
+    assert item["average_selling_value_per_unit"] == "11.00"
+
+
+def test_product_performance_filters_by_store_and_date(client):
+    retailer = create_retailer(client)
+    first_store = create_store(client, retailer["id"])
+    second_store = create_store(client, retailer["id"])
+    product = create_product(client, retailer["id"])
+
+    create_inventory(client, first_store["id"], product["id"])
+    create_inventory(client, second_store["id"], product["id"])
+
+    first_sale = create_sale(
+        client, retailer["id"], first_store["id"], product["id"], 2
+    )
+    second_sale = create_sale(
+        client, retailer["id"], second_store["id"], product["id"], 3
+    )
+
+    assert first_sale.status_code == 201, first_sale.text
+    assert second_sale.status_code == 201, second_sale.text
+
+    today = datetime.now(timezone.utc).date()
+
+    response = client.get(
+        "/api/v1/reports/product-performance",
+        params={
+            "retailer_id": retailer["id"],
+            "store_id": first_store["id"],
+            "date_from": today.isoformat(),
+            "date_to": today.isoformat(),
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+
+    assert data["store_id"] == first_store["id"]
+    assert data["date_from"] == today.isoformat()
+    assert data["date_to"] == today.isoformat()
+    assert data["total_products"] == 1
+
+    item = data["products"][0]
+    assert item["product_id"] == product["id"]
+    assert item["units_sold"] == 2
+    assert item["transaction_count"] == 1
+    assert item["total_revenue"] == "22.00"
