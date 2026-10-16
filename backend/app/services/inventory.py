@@ -89,6 +89,18 @@ class InventoryService:
                 "Inventory already exists for this store and product."
             )
 
+        store_retailer_id = getattr(store, "retailer_id", None)
+        product_retailer_id = getattr(product, "retailer_id", None)
+
+        if (
+            store_retailer_id is not None
+            and product_retailer_id is not None
+            and store_retailer_id != product_retailer_id
+        ):
+            raise ResourceConflictError(
+                "The product does not belong to the store's retailer."
+            )
+
         try:
             inventory = self.repository.create_pending(
                 db,
@@ -231,6 +243,7 @@ class InventoryService:
             db,
             inventory,
         )
+
     # ------------------------------------------------------------------
     # Stock-in
     # ------------------------------------------------------------------
