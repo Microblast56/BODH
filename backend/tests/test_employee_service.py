@@ -384,3 +384,61 @@ def test_delete_employee_raises_when_not_found():
         )
 
     repository.delete.assert_not_called()
+
+def test_create_employee_rejects_store_from_different_retailer():
+    service, repository, retailer_repository = make_service()
+    db = Mock()
+
+    retailer_repository.get_by_id.return_value = Mock(
+        id=1,
+        is_active=True,
+    )
+
+    store_repository = Mock()
+    store_repository.get_by_id.return_value = Mock(
+        id=10,
+        retailer_id=2,
+    )
+
+    # Inject the mocked store repository for this regression test.
+    service.store_repository = store_repository
+
+    employee_data = EmployeeCreate(
+        retailer_id=1,
+        store_id=10,
+        name="John Doe",
+        role="Manager",
+    )
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="The store does not belong to the specified retailer.",
+    ):
+        service.create_employee(db, employee_data)
+
+    store_repository.get_by_id.assert_called_once_with(db, 10)
+    repository.create.assert_not_called()
+def test_update_employee_rejects_store_from_different_retailer():
+    service, repository, _ = make_service()
+    db = Mock()
+
+    employee = make_employee(retailer_id=1)
+    repository.get_by_id.return_value = employee
+
+    store_repository = Mock()
+    store_repository.get_by_id.return_value = Mock(
+        id=10,
+        retailer_id=2,
+    )
+    service.store_repository = store_repository
+
+    update_data = EmployeeUpdate(store_id=10)
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="The store does not belong to the specified retailer.",
+    ):
+        service.update_employee(db, 1, update_data)
+
+    store_repository.get_by_id.assert_called_once_with(db, 10)
+    repository.update.assert_not_called()
