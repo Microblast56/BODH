@@ -86,6 +86,7 @@ def make_service(stock_quantity=100):
         "transaction_item_repository": transaction_item_repository,
         "retailer_repository": retailer_repository,
         "store_repository": store_repository,
+        "employee_repository": employee_repository,
         "product_repository": product_repository,
         "inventory_repository": inventory_repository,
         "stock_movement_repository": stock_movement_repository,
@@ -384,4 +385,75 @@ def test_integrity_error_is_preserved_if_duplicate_lookup_fails():
         )
 
     assert exc_info.value is original_error
+    db.rollback.assert_called_once()
+def test_product_from_different_retailer_is_rejected():
+    ctx = make_service()
+    ctx["product"].retailer_id = 2
+    db = ctx["db"]
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="Product 1 does not belong to this retailer.",
+    ):
+        ctx["service"].create_transaction(db, make_transaction_data())
+
+    ctx["transaction_repository"].create_pending.assert_not_called()
+    ctx["transaction_item_repository"].create_pending.assert_not_called()
+    ctx["inventory_repository"].get_by_store_and_product_for_update.assert_not_called()
+    ctx["inventory_repository"].adjust_quantity.assert_not_called()
+    ctx["stock_movement_repository"].create_pending.assert_not_called()
+
+    db.commit.assert_not_called()
+    db.rollback.assert_called_once()
+
+
+def test_employee_from_different_retailer_is_rejected():
+    ctx = make_service()
+    ctx["employee_repository"].get_by_id.return_value = SimpleNamespace(
+        id=10,
+        is_active=True,
+        retailer_id=2,
+        store_id=None,
+    )
+    db = ctx["db"]
+    data = make_transaction_data().model_copy(update={"employee_id": 10})
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="The employee does not belong to the specified retailer.",
+    ):
+        ctx["service"].create_transaction(db, data)
+
+    ctx["transaction_repository"].create_pending.assert_not_called()
+    ctx["product_repository"].get_by_id.assert_not_called()
+    ctx["inventory_repository"].adjust_quantity.assert_not_called()
+    ctx["stock_movement_repository"].create_pending.assert_not_called()
+
+    db.commit.assert_not_called()
+    db.rollback.assert_called_once()
+
+
+def test_employee_assigned_to_different_store_is_rejected():
+    ctx = make_service()
+    ctx["employee_repository"].get_by_id.return_value = SimpleNamespace(
+        id=10,
+        is_active=True,
+        retailer_id=1,
+        store_id=2,
+    )
+    db = ctx["db"]
+    data = make_transaction_data().model_copy(update={"employee_id": 10})
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="The employee is assigned to a different store.",
+    ):
+        ctx["service"].create_transaction(db, data)
+
+    ctx["transaction_repository"].create_pending.assert_not_called()
+    ctx["product_repository"].get_by_id.assert_not_called()
+    ctx["inventory_repository"].adjust_quantity.assert_not_called()
+    ctx["stock_movement_repository"].create_pending.assert_not_called()
+
+    db.commit.assert_not_called()
     db.rollback.assert_called_once()
