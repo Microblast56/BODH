@@ -539,3 +539,28 @@ def test_update_inventory_rejects_direct_quantity_change():
 
     assert get_response.status_code == 200
     assert get_response.json()["quantity_on_hand"] == 100
+
+
+
+def test_create_inventory_rejects_product_from_another_retailer():
+    retailer_one = create_retailer()
+    retailer_two = create_retailer()
+
+    store = create_store(retailer_one["id"])
+    product = create_product(retailer_two["id"])
+
+    response = client.post(
+        "/api/v1/inventories",
+        json={
+            "store_id": store["id"],
+            "product_id": product["id"],
+            "quantity_on_hand": 10,
+            "reorder_level": 2,
+            "reorder_quantity": 5,
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "The product does not belong to the store's retailer."
+    )
