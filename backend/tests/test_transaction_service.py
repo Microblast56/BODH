@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -156,6 +155,29 @@ def test_successful_sale_calculates_totals_and_deducts_stock():
 
     db.commit.assert_called_once()
     db.rollback.assert_not_called()
+
+
+def test_store_from_different_retailer_is_rejected():
+    ctx = make_service()
+    ctx["store_repository"].get_by_id.return_value.retailer_id = 2
+    db = ctx["db"]
+
+    with pytest.raises(
+        ResourceConflictError,
+        match="The store does not belong to the specified retailer.",
+    ):
+        ctx["service"].create_transaction(
+            db,
+            make_transaction_data(),
+        )
+
+    ctx["transaction_repository"].create_pending.assert_not_called()
+    ctx["transaction_item_repository"].create_pending.assert_not_called()
+    ctx["inventory_repository"].adjust_quantity.assert_not_called()
+    ctx["stock_movement_repository"].create_pending.assert_not_called()
+
+    db.commit.assert_not_called()
+    db.rollback.assert_called_once()
 
 
 def test_insufficient_stock_rolls_back_without_creating_sale():

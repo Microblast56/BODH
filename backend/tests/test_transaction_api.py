@@ -1,4 +1,3 @@
-
 from uuid import uuid4
 
 import pytest
@@ -246,3 +245,34 @@ def test_create_transaction_rejects_empty_items(client):
     )
 
     assert response.status_code == 422
+
+
+def test_create_transaction_rejects_store_from_different_retailer(client):
+    retailer_a = create_retailer(client)
+    retailer_b = create_retailer(client)
+
+    store_a = create_store(client, retailer_a["id"])
+    product_a = create_product(client, retailer_a["id"])
+    inventory_a = create_inventory(
+        client, store_a["id"], product_a["id"], quantity=10
+    )
+
+    store_b = create_store(client, retailer_b["id"])
+
+    response = create_sale(
+        client,
+        retailer_a["id"],
+        store_b["id"],
+        product_a["id"],
+    )
+
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == (
+        "The store does not belong to the specified retailer."
+    )
+
+    inventory_response = client.get(
+        f"/api/v1/inventories/{inventory_a['id']}"
+    )
+    assert inventory_response.status_code == 200
+    assert inventory_response.json()["quantity_on_hand"] == 10
